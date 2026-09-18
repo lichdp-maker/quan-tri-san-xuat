@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { verify } from '@node-rs/argon2'
 import { prisma } from '@/lib/prisma'
-import { taoPhien, xoaPhien, trangChinh } from '@/lib/session'
+import { taoPhien, xoaPhien } from '@/lib/session'
 
 export type KetQuaDangNhap = { loi?: string }
 
@@ -32,7 +32,21 @@ export async function dangNhap(_truoc: KetQuaDangNhap, form: FormData): Promise<
     teamId: u.teamId,
   })
 
-  redirect(trangChinh(u.role))
+  redirect('/')
+}
+
+/**
+ * Tra tên theo mã nhân viên để hiện ngay dưới ô nhập.
+ * Chỉ trả về họ tên — công nhân biết mình gõ đúng mã trước khi nhập PIN.
+ */
+export async function timTen(ma: string): Promise<string | null> {
+  const code = ma.trim().toUpperCase()
+  if (code.length < 3) return null
+  const u = await prisma.user.findUnique({
+    where: { employeeCode: code },
+    select: { fullName: true, isActive: true },
+  })
+  return u && u.isActive ? u.fullName : null
 }
 
 export async function dangXuat(): Promise<void> {

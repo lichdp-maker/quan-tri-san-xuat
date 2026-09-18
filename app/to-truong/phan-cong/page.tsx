@@ -85,12 +85,7 @@ export default async function TrangPhanCong({
               <Link
                 key={l.id}
                 href={`/to-truong/phan-cong?lenh=${l.id}`}
-                className={[
-                  'rounded-full border px-3 py-1.5 text-sm font-medium',
-                  l.id === lenhHienTai?.id
-                    ? 'border-brand-600 bg-brand-600 text-white'
-                    : 'border-slate-300 bg-white text-slate-700',
-                ].join(' ')}
+                className={l.id === lenhHienTai?.id ? 'chip-bat' : 'chip-tat'}
               >
                 {l.code} · {l.product.code} · {l.quantity}
               </Link>

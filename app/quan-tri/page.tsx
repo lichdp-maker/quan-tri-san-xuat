@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { nguoiDangDangNhap, TEN_VAI_TRO } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { soPhut } from '@/lib/date'
-import { dangXuat } from '../dang-nhap/actions'
+import { Header } from '@/components/Header'
 import {
   themNguoiDung,
   themNhieuNguoiDung,
@@ -43,32 +43,18 @@ export default async function TrangQuanTri({
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-5">
-      <header className="mb-4 flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h1 className="text-lg font-bold leading-tight">Quản trị hệ thống</h1>
-          <p className="text-sm text-slate-500">
-            {u.fullName} · {TEN_VAI_TRO[u.role]}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/bang-dieu-khien" className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600">
-            Bảng tổng hợp
-          </Link>
-          <form action={dangXuat}>
-            <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600">Thoát</button>
-          </form>
-        </div>
-      </header>
+      <Header
+        tieuDe="Quản trị hệ thống"
+        phu={`${u.fullName} · ${TEN_VAI_TRO[u.role]}`}
+        nguoiDung={u}
+      />
 
       <div className="mb-5 flex flex-wrap gap-2">
         {Object.entries(TABS).map(([k, v]) => (
           <Link
             key={k}
             href={`/quan-tri?tab=${k}`}
-            className={[
-              'rounded-lg border px-3 py-1.5 text-sm font-medium',
-              k === tabHienTai ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-slate-700',
-            ].join(' ')}
+            className={k === tabHienTai ? 'chip-bat' : 'chip-tat'}
           >
             {v}
           </Link>

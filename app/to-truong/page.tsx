@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { nguoiDangDangNhap, TEN_VAI_TRO } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { ngayHomNay, ngayLamViec, gioHienTai, dinhDangNgay } from '@/lib/date'
-import { dangXuat } from '../dang-nhap/actions'
+import { Header } from '@/components/Header'
 import { duyetBanGhi, tuChoiBanGhi } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -84,33 +84,16 @@ export default async function TrangToTruong() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-5">
-      <header className="mb-5 flex items-start justify-between gap-2">
-        <div>
-          <p className="text-lg font-bold leading-tight">{u.fullName}</p>
-          <p className="text-sm text-slate-500">
-            {TEN_VAI_TRO[u.role]} · {dinhDangNgay(ymd)} · {gio}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/to-truong/phan-cong"
-            className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white"
-          >
+      <Header
+        tieuDe="Chốt số · Phân công"
+        phu={`${u.fullName} · ${TEN_VAI_TRO[u.role]} · ${dinhDangNgay(ymd)} · ${gio}`}
+        nguoiDung={u}
+        them={
+          <Link href="/to-truong/phan-cong" className="nut-nho">
             Phân công
           </Link>
-          <Link
-            href="/doi-mat-khau"
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600"
-          >
-            Mật khẩu
-          </Link>
-          <form action={dangXuat}>
-            <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600">
-              Thoát
-            </button>
-          </form>
-        </div>
-      </header>
+        }
+      />
 
       <div className="mb-5 grid grid-cols-3 gap-3">
         <ThongSo nhan="Phân công hôm nay" giaTri={phanCong.length} />

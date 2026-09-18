@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { nguoiDangDangNhap, TEN_VAI_TRO } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
-import { dangXuat } from '../dang-nhap/actions'
+import { Header } from '@/components/Header'
 import { suaDinhMuc, themNguyenCong, themSanPham, themBoPhan, xuLyPhieuLoi } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -66,27 +66,11 @@ export default async function TrangKyThuat({
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-5">
-      <header className="mb-4 flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h1 className="text-lg font-bold leading-tight">Kỹ thuật</h1>
-          <p className="text-sm text-slate-500">
-            {u.fullName} · {TEN_VAI_TRO[u.role]}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/bang-dieu-khien"
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600"
-          >
-            Bảng tổng hợp
-          </Link>
-          <form action={dangXuat}>
-            <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600">
-              Thoát
-            </button>
-          </form>
-        </div>
-      </header>
+      <Header
+        tieuDe="Kỹ thuật"
+        phu={`${u.fullName} · ${TEN_VAI_TRO[u.role]}`}
+        nguoiDung={u}
+      />
 
       <div className="mb-5 flex gap-2">
         <Link
@@ -107,12 +91,7 @@ export default async function TrangKyThuat({
               <Link
                 key={p.id}
                 href={`/ky-thuat?tab=dinh-muc&sp=${p.id}`}
-                className={[
-                  'rounded-full border px-3 py-1.5 text-sm font-medium',
-                  p.id === spHienTai?.id
-                    ? 'border-brand-600 bg-brand-600 text-white'
-                    : 'border-slate-300 bg-white text-slate-700',
-                ].join(' ')}
+                className={p.id === spHienTai?.id ? 'chip-bat' : 'chip-tat'}
               >
                 {p.code}
               </Link>
@@ -325,8 +304,5 @@ export default async function TrangKyThuat({
 }
 
 function tabLop(dangChon: boolean): string {
-  return [
-    'rounded-lg border px-3 py-1.5 text-sm font-medium',
-    dangChon ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-slate-700',
-  ].join(' ')
+  return dangChon ? 'chip-bat' : 'chip-tat'
 }

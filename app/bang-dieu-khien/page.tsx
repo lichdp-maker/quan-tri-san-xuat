@@ -4,7 +4,7 @@ import { nguoiDangDangNhap, TEN_VAI_TRO } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { ngayHomNay, ngayLamViec, dinhDangNgay } from '@/lib/date'
 import { aggregate, qualityRate } from '@/lib/productivity'
-import { dangXuat } from '../dang-nhap/actions'
+import { Header } from '@/components/Header'
 import { Thanh } from './Thanh'
 
 export const dynamic = 'force-dynamic'
@@ -162,53 +162,11 @@ export default async function TrangBangDieuKhien({
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-5">
-      <header className="mb-4 flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h1 className="text-lg font-bold leading-tight">Bảng tổng hợp sản xuất</h1>
-          <p className="text-sm text-slate-500">
-            {u.fullName} · {TEN_VAI_TRO[u.role]} · {dinhDangNgay(ymd)}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/lenh-san-xuat"
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600"
-          >
-            Lệnh sản xuất
-          </Link>
-          <Link
-            href="/to-truong"
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600"
-          >
-            Chốt số
-          </Link>
-          <Link
-            href="/ky-thuat"
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600"
-          >
-            Kỹ thuật
-          </Link>
-          {['SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'].includes(u.role) && (
-            <Link
-              href="/quan-tri"
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600"
-            >
-              Quản trị
-            </Link>
-          )}
-          <Link
-            href="/doi-mat-khau"
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600"
-          >
-            Đổi mật khẩu
-          </Link>
-          <form action={dangXuat}>
-            <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600">
-              Thoát
-            </button>
-          </form>
-        </div>
-      </header>
+      <Header
+        tieuDe="Bảng tổng hợp sản xuất"
+        phu={`${u.fullName} · ${TEN_VAI_TRO[u.role]} · ${dinhDangNgay(ymd)}`}
+        nguoiDung={u}
+      />
 
       {/* Xuất dữ liệu ra Excel */}
       <form action="/bao-cao/xuat" method="get" className="the mb-5 flex flex-wrap items-end gap-2">
@@ -232,10 +190,7 @@ export default async function TrangBangDieuKhien({
           <Link
             key={k}
             href={`/bang-dieu-khien?ky=${k}`}
-            className={[
-              'rounded-full border px-3 py-1.5 text-sm font-medium',
-              k === ky ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700',
-            ].join(' ')}
+            className={k === ky ? 'chip-bat' : 'chip-tat'}
           >
             {v.nhan}
           </Link>

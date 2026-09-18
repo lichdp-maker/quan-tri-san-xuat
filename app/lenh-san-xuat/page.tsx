@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { nguoiDangDangNhap, TEN_VAI_TRO } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
-import { dangXuat } from '../dang-nhap/actions'
+import { Header } from '@/components/Header'
 import { taoLenh, doiTrangThai } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -37,27 +36,11 @@ export default async function TrangLenhSanXuat() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-5">
-      <header className="mb-5 flex items-start justify-between gap-2">
-        <div>
-          <h1 className="text-lg font-bold leading-tight">Lệnh sản xuất</h1>
-          <p className="text-sm text-slate-500">
-            {u.fullName} · {TEN_VAI_TRO[u.role]}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/bang-dieu-khien"
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600"
-          >
-            Bảng điều khiển
-          </Link>
-          <form action={dangXuat}>
-            <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600">
-              Thoát
-            </button>
-          </form>
-        </div>
-      </header>
+      <Header
+        tieuDe="Lệnh sản xuất"
+        phu={`${u.fullName} · ${TEN_VAI_TRO[u.role]}`}
+        nguoiDung={u}
+      />
 
       <form action={taoLenh} className="the mb-6 grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1">

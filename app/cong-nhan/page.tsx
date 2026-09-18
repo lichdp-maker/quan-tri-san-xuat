@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { nguoiDangDangNhap } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { ngayHomNay, ngayLamViec, gioHienTai, soPhut, dinhDangNgay } from '@/lib/date'
-import { dangXuat } from '../dang-nhap/actions'
+import { Header } from '@/components/Header'
 import ManHinhNhap from './ManHinhNhap'
 
 export const dynamic = 'force-dynamic'
@@ -70,27 +70,11 @@ export default async function TrangCongNhan() {
 
   return (
     <main className="mx-auto w-full max-w-md px-4 pb-24 pt-4">
-      <header className="mb-4 flex items-start justify-between gap-2">
-        <div>
-          <p className="text-lg font-bold leading-tight">{u.fullName}</p>
-          <p className="text-sm text-slate-500">
-            {u.employeeCode} · {dinhDangNgay(ymd)}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <a
-            href="/doi-mat-khau"
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600"
-          >
-            Mật khẩu
-          </a>
-          <form action={dangXuat}>
-            <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600">
-              Thoát
-            </button>
-          </form>
-        </div>
-      </header>
+      <Header
+        tieuDe={u.fullName}
+        phu={`${u.employeeCode} · ${dinhDangNgay(ymd)}`}
+        nguoiDung={u}
+      />
 
       {dsPhanCong.length === 0 ? (
         <div className="the text-center text-slate-500">

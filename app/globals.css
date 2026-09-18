@@ -4,6 +4,7 @@
 
 :root {
   color-scheme: light;
+  --nen: #f6f8fc;
 }
 
 html {
@@ -11,20 +12,83 @@ html {
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply text-slate-900 antialiased;
+  background: radial-gradient(1100px 520px at 50% -140px, #e6edff 0%, rgba(230, 237, 255, 0) 62%),
+    linear-gradient(180deg, #f6f8fc 0%, #ffffff 42%, #f6f8fc 100%);
+  background-attachment: fixed;
+  min-height: 100dvh;
 }
 
-/* Ô nhập số cỡ lớn cho công nhân dùng điện thoại */
-.input-so {
-  @apply w-full rounded-xl border-2 border-slate-300 px-3 py-3 text-center text-2xl font-semibold
-         tabular-nums focus:border-brand-500 focus:outline-none;
-}
+@layer components {
+  /* ===== Thẻ ===== */
+  .the {
+    @apply rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.12)];
+  }
 
-.nut-chinh {
-  @apply w-full rounded-xl bg-brand-600 px-4 py-4 text-lg font-semibold text-white
-         active:bg-brand-700 disabled:opacity-50;
-}
+  .the-bam {
+    @apply the block transition duration-150 hover:-translate-y-0.5
+           hover:shadow-[0_2px_4px_rgba(15,23,42,0.05),0_16px_32px_-14px_rgba(15,23,42,0.22)];
+  }
 
-.the {
-  @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm;
+  /* ===== Ô nhập ===== */
+  .o-nhap {
+    @apply w-full rounded-xl border border-transparent bg-slate-100 px-4 py-3 text-base
+           text-slate-900 placeholder:text-slate-400
+           focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-100;
+  }
+
+  .o-chon {
+    @apply o-nhap appearance-none bg-slate-100 py-2.5 pr-9;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'%3E%3Cpath d='M5.2 7.5 10 12.3l4.8-4.8'/%3E%3C/svg%3E");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.1rem;
+  }
+
+  /* Ô nhập số cỡ lớn cho công nhân dùng điện thoại */
+  .input-so {
+    @apply w-full rounded-xl border border-transparent bg-slate-100 px-3 py-3 text-center text-2xl
+           font-semibold tabular-nums text-slate-900
+           focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-100;
+  }
+
+  /* ===== Nút ===== */
+  .nut-chinh {
+    @apply w-full rounded-xl bg-brand-600 px-4 py-3.5 text-base font-semibold text-white
+           shadow-[0_8px_20px_-8px_rgba(37,99,235,0.7)] transition
+           hover:bg-brand-700 active:translate-y-px disabled:opacity-50 disabled:shadow-none;
+  }
+
+  .nut-phu {
+    @apply rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600
+           transition hover:border-slate-300 hover:text-slate-900;
+  }
+
+  .nut-nho {
+    @apply rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-brand-700;
+  }
+
+  .nut-duyet {
+    @apply rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700;
+  }
+
+  /* ===== Ô biểu tượng nhiều màu ===== */
+  .o-icon {
+    @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white shadow-sm;
+  }
+
+  /* ===== Chip / thẻ nhỏ ===== */
+  .chip {
+    @apply rounded-full border px-3.5 py-1.5 text-sm font-medium transition;
+  }
+  .chip-tat {
+    @apply chip border-slate-200 bg-white text-slate-600 hover:border-slate-300;
+  }
+  .chip-bat {
+    @apply chip border-brand-600 bg-brand-600 text-white shadow-[0_6px_16px_-8px_rgba(37,99,235,0.8)];
+  }
+
+  .nhan {
+    @apply text-xs font-medium uppercase tracking-wide text-slate-500;
+  }
 }
