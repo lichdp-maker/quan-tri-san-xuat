@@ -1,0 +1,368 @@
+{
+ "tos": [
+  {
+   "code": "TSX1",
+   "name": "Tổ sản xuất 1",
+   "leader": "EMIC1233"
+  },
+  {
+   "code": "TSX2",
+   "name": "Tổ sản xuất 2",
+   "leader": null
+  },
+  {
+   "code": "TSX3",
+   "name": "Tổ sản xuất 3",
+   "leader": "EMIC1192"
+  },
+  {
+   "code": "TSX4",
+   "name": "Tổ sản xuất 4",
+   "leader": null
+  },
+  {
+   "code": "TSX5",
+   "name": "Tổ sản xuất 5",
+   "leader": "EMIC1970"
+  },
+  {
+   "code": "TSX6",
+   "name": "Tổ sản xuất 6",
+   "leader": null
+  },
+  {
+   "code": "TSX7",
+   "name": "Tổ sản xuất 7",
+   "leader": null
+  },
+  {
+   "code": "QC",
+   "name": "Tổ QC",
+   "leader": "EMIC1499"
+  }
+ ],
+ "nguoi": [
+  {
+   "ma": "EMIC1312",
+   "ten": "Đặng Phạm Lịch",
+   "vaiTro": "SHOP_MANAGER",
+   "to": null,
+   "chucDanh": "P. Giám Đốc Trung Tâm"
+  },
+  {
+   "ma": "EMIC1410",
+   "ten": "Nghiêm Đình Hảo",
+   "vaiTro": "ENGINEER",
+   "to": null,
+   "chucDanh": "Phó phòng TKCN"
+  },
+  {
+   "ma": "EMIC1348",
+   "ten": "Đinh Quang Hiệp",
+   "vaiTro": "ENGINEER",
+   "to": null,
+   "chucDanh": "Phó phòng TKCN"
+  },
+  {
+   "ma": "EMIC1577",
+   "ten": "Trần Phương Dũng",
+   "vaiTro": "ENGINEER",
+   "to": null,
+   "chucDanh": "Nhân viên"
+  },
+  {
+   "ma": "EMIC1651",
+   "ten": "Nguyễn Văn Lâm",
+   "vaiTro": "ENGINEER",
+   "to": null,
+   "chucDanh": "Nhân viên"
+  },
+  {
+   "ma": "EMIC1955",
+   "ten": "Đào Tuấn Dương",
+   "vaiTro": "ENGINEER",
+   "to": null,
+   "chucDanh": "Nhân viên"
+  },
+  {
+   "ma": "EMIC2013",
+   "ten": "Lê Thị Hải",
+   "vaiTro": "ENGINEER",
+   "to": null,
+   "chucDanh": "Nhân viên"
+  },
+  {
+   "ma": "EMIC1817",
+   "ten": "Nguyễn Thị Thảo",
+   "vaiTro": "PLANNER",
+   "to": null,
+   "chucDanh": "Kinh tế viên"
+  },
+  {
+   "ma": "EMIC1909",
+   "ten": "Trần Duy Đông",
+   "vaiTro": "WAREHOUSE",
+   "to": null,
+   "chucDanh": "Thủ kho"
+  },
+  {
+   "ma": "EMIC1233",
+   "ten": "Dương Thanh Ngọc",
+   "vaiTro": "TEAM_LEADER",
+   "to": "TSX1",
+   "chucDanh": "Tổ trưởng"
+  },
+  {
+   "ma": "EMIC1143",
+   "ten": "Nguyễn Thị Huyền",
+   "vaiTro": "WORKER",
+   "to": "TSX1",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1936",
+   "ten": "Vũ Minh Dương",
+   "vaiTro": "WORKER",
+   "to": "TSX1",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1986",
+   "ten": "Đinh Văn Hồng",
+   "vaiTro": "WORKER",
+   "to": "TSX1",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1224",
+   "ten": "Vương Thị Toan",
+   "vaiTro": "WORKER",
+   "to": "TSX1",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1382",
+   "ten": "Hoàng Văn Chỉnh",
+   "vaiTro": "WORKER",
+   "to": "TSX1",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1723",
+   "ten": "Nguyễn Thị Lan Anh",
+   "vaiTro": "WORKER",
+   "to": "TSX1",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1171",
+   "ten": "Nguyễn Thị Hoài Linh",
+   "vaiTro": "WORKER",
+   "to": "TSX2",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1244",
+   "ten": "Nguyễn Thúy Vi",
+   "vaiTro": "WORKER",
+   "to": "TSX2",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1987",
+   "ten": "Đinh Thị Huyêng",
+   "vaiTro": "WORKER",
+   "to": "TSX2",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1179",
+   "ten": "Nguyễn Thị Duyên",
+   "vaiTro": "WORKER",
+   "to": "TSX2",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1040",
+   "ten": "Trần Hoàng Hải",
+   "vaiTro": "WORKER",
+   "to": "TSX2",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "TTCNC901",
+   "ten": "Hoàng Thị Thanh Thúy",
+   "vaiTro": "WORKER",
+   "to": "TSX2",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1271",
+   "ten": "Vũ Đức Tuyển",
+   "vaiTro": "WORKER",
+   "to": "TSX2",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1192",
+   "ten": "Nguyễn Đình Thanh",
+   "vaiTro": "TEAM_LEADER",
+   "to": "TSX3",
+   "chucDanh": "Tổ trưởng"
+  },
+  {
+   "ma": "EMIC1488",
+   "ten": "Hoàng Văn Sỹ",
+   "vaiTro": "WORKER",
+   "to": "TSX3",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1094",
+   "ten": "Bùi Minh Loan",
+   "vaiTro": "WORKER",
+   "to": "TSX3",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC2008",
+   "ten": "Nông Thị Cảnh",
+   "vaiTro": "WORKER",
+   "to": "TSX3",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1132",
+   "ten": "Khấu Chiến Thắng",
+   "vaiTro": "WORKER",
+   "to": "TSX3",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1557",
+   "ten": "Nguyễn Đức Tuấn",
+   "vaiTro": "WORKER",
+   "to": "TSX3",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1967",
+   "ten": "Hà Minh Khương",
+   "vaiTro": "WORKER",
+   "to": "TSX3",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC2004",
+   "ten": "Nông Thị Em",
+   "vaiTro": "WORKER",
+   "to": "TSX4",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1769",
+   "ten": "Nùng Thị Bích",
+   "vaiTro": "WORKER",
+   "to": "TSX4",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1133",
+   "ten": "Chu Bích Hằng",
+   "vaiTro": "WORKER",
+   "to": "TSX4",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1258",
+   "ten": "Nguyễn Thị Nam",
+   "vaiTro": "WORKER",
+   "to": "TSX4",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "TTCNC902",
+   "ten": "Nguyễn Thanh Thảo",
+   "vaiTro": "WORKER",
+   "to": "TSX4",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1970",
+   "ten": "Nguyễn Văn Long",
+   "vaiTro": "TEAM_LEADER",
+   "to": "TSX5",
+   "chucDanh": "Tổ trưởng"
+  },
+  {
+   "ma": "EMIC1991",
+   "ten": "Cao Vũ Tuyên",
+   "vaiTro": "WORKER",
+   "to": "TSX5",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1980",
+   "ten": "Nguyễn Thị Bích Huệ",
+   "vaiTro": "WORKER",
+   "to": "TSX6",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC2010",
+   "ten": "Nông Đình Quang",
+   "vaiTro": "WORKER",
+   "to": "TSX7",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1988",
+   "ten": "Triệu Kim Dưỡng",
+   "vaiTro": "WORKER",
+   "to": "TSX7",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1990",
+   "ten": "Lô Thị Xuân",
+   "vaiTro": "WORKER",
+   "to": "TSX7",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1969",
+   "ten": "Hoàng Thị Linh",
+   "vaiTro": "WORKER",
+   "to": "QC",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1971",
+   "ten": "Vũ Thị Dịu",
+   "vaiTro": "WORKER",
+   "to": "QC",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1976",
+   "ten": "Nông Thị Hồng",
+   "vaiTro": "WORKER",
+   "to": "QC",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1995",
+   "ten": "Bùi Thị Nụ",
+   "vaiTro": "WORKER",
+   "to": "QC",
+   "chucDanh": "Công nhân"
+  },
+  {
+   "ma": "EMIC1499",
+   "ten": "Dương Đình Vương",
+   "vaiTro": "TEAM_LEADER",
+   "to": "QC",
+   "chucDanh": "Tổ trưởng"
+  }
+ ]
+}

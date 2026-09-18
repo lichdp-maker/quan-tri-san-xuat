@@ -14,15 +14,15 @@ export default async function TrangDangNhap() {
           <IconDauTich className="h-8 w-8" />
         </span>
         <h1 className="text-2xl font-bold uppercase leading-tight tracking-tight">
-          Theo dõi sản xuất
+          Nhà máy thông minh EMIC
         </h1>
-        <p className="mt-1 text-sm text-slate-500">Nhà máy EMIC-GEIC</p>
+        <p className="mt-1 text-sm text-slate-500">Hệ thống theo dõi sản xuất</p>
       </div>
 
       <FormDangNhap />
 
       <p className="mt-7 text-center text-xs text-slate-400">
-        Chỉ dành cho cán bộ nhân viên · EMIC-GEIC
+        Chỉ dành cho cán bộ nhân viên · Nhà máy thông minh EMIC
       </p>
     </main>
   )
