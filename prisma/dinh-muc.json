@@ -1,0 +1,637 @@
+{
+  "products": [
+    {
+      "code": "G6",
+      "name": "Thiết bị truyền tin cảnh báo cháy G6 / G4",
+      "unit": "sp",
+      "isKit": false,
+      "sections": [
+        {
+          "code": "G6",
+          "name": "Toàn bộ nguyên công",
+          "seq": 10,
+          "ops": [
+            {
+              "tt": 1,
+              "name": "Tháo dỡ bo mạch",
+              "detail": "Tháo dỡ bo mạch, loại bỏ phần mạch dư",
+              "seconds": 15,
+              "note": null
+            },
+            {
+              "tt": 2,
+              "name": "Nạp chương trình, kiểm tra đèn còi",
+              "detail": null,
+              "seconds": 34,
+              "note": null
+            },
+            {
+              "tt": 3,
+              "name": "Kiểm tra chức năng sạc của mạch, WDI",
+              "detail": null,
+              "seconds": 33,
+              "note": null
+            },
+            {
+              "tt": 4,
+              "name": "Lắp pin vào bo mạch",
+              "detail": "Lắp pin vào bo mạch, nhỏ keo",
+              "seconds": 85,
+              "note": null
+            },
+            {
+              "tt": 5,
+              "name": "Lắp trụ sáng",
+              "detail": null,
+              "seconds": 65,
+              "note": null
+            },
+            {
+              "tt": 6,
+              "name": "Lắp dây anten kéo dài",
+              "detail": null,
+              "seconds": 22,
+              "note": null
+            },
+            {
+              "tt": 7,
+              "name": "Lắp bo mạch vào vỏ",
+              "detail": null,
+              "seconds": 113,
+              "note": null
+            },
+            {
+              "tt": 8,
+              "name": "Kiểm tra adapter",
+              "detail": null,
+              "seconds": 51,
+              "note": null
+            },
+            {
+              "tt": 9,
+              "name": "In laze",
+              "detail": null,
+              "seconds": 0,
+              "note": "bỏ, ko in tại nhà máy"
+            },
+            {
+              "tt": 10,
+              "name": "Dán tem, kiểm pin",
+              "detail": null,
+              "seconds": 24,
+              "note": "bỏ kiểm pin"
+            },
+            {
+              "tt": 11,
+              "name": "Kiểm tra tính năng",
+              "detail": null,
+              "seconds": 120,
+              "note": "Đang tối ưu Psoft"
+            },
+            {
+              "tt": 12,
+              "name": "Lắp sim",
+              "detail": null,
+              "seconds": 14,
+              "note": null
+            },
+            {
+              "tt": 13,
+              "name": "Cho phụ kiện vào túi zip",
+              "detail": null,
+              "seconds": 30,
+              "note": null
+            },
+            {
+              "tt": 14,
+              "name": "Bao gói dây tín hiệu",
+              "detail": "Kiểm tra, thít, gấp hộp, đóng hộp dây tín hiệu",
+              "seconds": 13,
+              "note": "Bỏ nguyên công kiểm tra, thít"
+            },
+            {
+              "tt": 15,
+              "name": "Dán tem niêm phong, lắp connecter",
+              "detail": null,
+              "seconds": 45,
+              "note": null
+            },
+            {
+              "tt": 16,
+              "name": "Cho thiết bị, adapter vào túi CPE",
+              "detail": null,
+              "seconds": 74,
+              "note": null
+            },
+            {
+              "tt": 17,
+              "name": "Sắp xếp các phụ kiện, thiết bị vào hộp",
+              "detail": null,
+              "seconds": 80,
+              "note": null
+            },
+            {
+              "tt": 18,
+              "name": "Đóng hộp, thùng",
+              "detail": "in, dán tem, kiểm tra tem, dán tem, đóng hộp, đóng thùng",
+              "seconds": 70,
+              "note": null
+            },
+            {
+              "tt": 19,
+              "name": "Lắp, kiểm tra Pin CR1220",
+              "detail": null,
+              "seconds": 16,
+              "note": "Bổ sung"
+            },
+            {
+              "tt": 20,
+              "name": "Kiểm tra pin lithium",
+              "detail": null,
+              "seconds": 13,
+              "note": null
+            },
+            {
+              "tt": 21,
+              "name": "In, dán tem QR code",
+              "detail": null,
+              "seconds": 23,
+              "note": null
+            },
+            {
+              "tt": 23,
+              "name": "Kiểm tra ngoại quan",
+              "detail": null,
+              "seconds": 30,
+              "note": "QC"
+            },
+            {
+              "tt": 24,
+              "name": "Kiểm tra xuất xưởng",
+              "detail": null,
+              "seconds": 40,
+              "note": null
+            },
+            {
+              "tt": 25,
+              "name": "Kiểm tra bao gói",
+              "detail": null,
+              "seconds": 15,
+              "note": null
+            },
+            {
+              "tt": 26,
+              "name": "Kiểm tra ngoại quan trước lắp ráp",
+              "detail": null,
+              "seconds": 25,
+              "note": "Bổ sung"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "GS06V2",
+      "name": "Bộ báo cháy không dây GS06 V2",
+      "unit": "bộ",
+      "isKit": true,
+      "sections": [
+        {
+          "code": "HD",
+          "name": "Đầu báo khói",
+          "ops": [
+            {
+              "tt": 1,
+              "name": "Tháo dỡ bo mạch, sấy",
+              "detail": null,
+              "seconds": 15,
+              "note": null
+            },
+            {
+              "tt": 2,
+              "name": "Lắp buồng khói",
+              "detail": "Lắp led, nhỏ keo",
+              "seconds": 47,
+              "note": null
+            },
+            {
+              "tt": 3,
+              "name": "Hàn buồng khói",
+              "detail": "Lắp đế, hàn buồng khói, bồi thiếc",
+              "seconds": 51,
+              "note": null
+            },
+            {
+              "tt": 4,
+              "name": "Điều chỉnh anten, bồi thiếc",
+              "detail": null,
+              "seconds": 20,
+              "note": null
+            },
+            {
+              "tt": 5,
+              "name": "Nạp chương trình",
+              "detail": null,
+              "seconds": 41,
+              "note": null
+            },
+            {
+              "tt": 6,
+              "name": "Kiểm tra FCT",
+              "detail": null,
+              "seconds": 32,
+              "note": null
+            },
+            {
+              "tt": 7,
+              "name": "Coating PCBA",
+              "detail": null,
+              "seconds": 31,
+              "note": null
+            },
+            {
+              "tt": 8,
+              "name": "Dán tem QR, lắp nắp buồng khói",
+              "detail": null,
+              "seconds": 19,
+              "note": null
+            },
+            {
+              "tt": 9,
+              "name": "In laser vỏ",
+              "detail": null,
+              "seconds": 13,
+              "note": null
+            },
+            {
+              "tt": 10,
+              "name": "Lắp nắp phụ",
+              "detail": null,
+              "seconds": 12,
+              "note": null
+            },
+            {
+              "tt": 11,
+              "name": "Lắp bo mạch vào tấm bắt PCB",
+              "detail": null,
+              "seconds": 26,
+              "note": null
+            },
+            {
+              "tt": 12,
+              "name": "Lắp nắp chính",
+              "detail": null,
+              "seconds": 16,
+              "note": null
+            },
+            {
+              "tt": 13,
+              "name": "Dán tem",
+              "detail": null,
+              "seconds": 18,
+              "note": null
+            },
+            {
+              "tt": 14,
+              "name": "Hiệu chỉnh",
+              "detail": null,
+              "seconds": 30,
+              "note": null
+            },
+            {
+              "tt": 15,
+              "name": "Đo dòng tiêu thụ",
+              "detail": null,
+              "seconds": 30,
+              "note": null
+            },
+            {
+              "tt": 16,
+              "name": "Kiểm tra ngưỡng cảnh báo",
+              "detail": null,
+              "seconds": 68,
+              "note": "QC"
+            },
+            {
+              "tt": 17,
+              "name": "Cài xuất xưởng",
+              "detail": null,
+              "seconds": 37,
+              "note": null
+            },
+            {
+              "tt": 18,
+              "name": "Kiểm tra xuất xưởng",
+              "detail": null,
+              "seconds": 30,
+              "note": "QC"
+            },
+            {
+              "tt": 19,
+              "name": "Kiểm tra pin",
+              "detail": null,
+              "seconds": 12,
+              "note": null
+            },
+            {
+              "tt": 20,
+              "name": "Lắp pin",
+              "detail": null,
+              "seconds": 15,
+              "note": null
+            }
+          ],
+          "seq": 10
+        },
+        {
+          "code": "HT",
+          "name": "Đầu báo nhiệt",
+          "ops": [
+            {
+              "tt": 1,
+              "name": "Tháo dỡ bo mạch, sấy",
+              "detail": null,
+              "seconds": 3,
+              "note": null
+            },
+            {
+              "tt": 2,
+              "name": "Nạp chương trình",
+              "detail": null,
+              "seconds": 41,
+              "note": null
+            },
+            {
+              "tt": 3,
+              "name": "Hiệu chỉnh",
+              "detail": null,
+              "seconds": 50,
+              "note": null
+            },
+            {
+              "tt": 4,
+              "name": "Đo dòng tiêu thụ",
+              "detail": null,
+              "seconds": 17,
+              "note": null
+            },
+            {
+              "tt": 5,
+              "name": "Kiểm tra FCT",
+              "detail": null,
+              "seconds": 32,
+              "note": null
+            },
+            {
+              "tt": 6,
+              "name": "In laser vỏ",
+              "detail": null,
+              "seconds": 13,
+              "note": null
+            },
+            {
+              "tt": 7,
+              "name": "Lắp nắp phụ",
+              "detail": null,
+              "seconds": 12,
+              "note": null
+            },
+            {
+              "tt": 8,
+              "name": "Lắp bo mạch vào tấm bắt PCB",
+              "detail": null,
+              "seconds": 26,
+              "note": null
+            },
+            {
+              "tt": 9,
+              "name": "Lắp nắp chính",
+              "detail": null,
+              "seconds": 16,
+              "note": null
+            },
+            {
+              "tt": 10,
+              "name": "Dán tem",
+              "detail": null,
+              "seconds": 18,
+              "note": null
+            },
+            {
+              "tt": 11,
+              "name": "Cài xuất xưởng",
+              "detail": null,
+              "seconds": 37,
+              "note": null
+            },
+            {
+              "tt": 12,
+              "name": "Kiểm tra xuất xưởng",
+              "detail": null,
+              "seconds": 30,
+              "note": "QC"
+            },
+            {
+              "tt": 13,
+              "name": "Kiểm tra pin",
+              "detail": null,
+              "seconds": 12,
+              "note": null
+            },
+            {
+              "tt": 14,
+              "name": "Lắp pin",
+              "detail": null,
+              "seconds": 15,
+              "note": null
+            }
+          ],
+          "seq": 20
+        },
+        {
+          "code": "CD",
+          "name": "Chuông đèn",
+          "ops": [
+            {
+              "tt": 1,
+              "name": "Tháo dỡ bo mạch, sấy",
+              "detail": null,
+              "seconds": 3,
+              "note": null
+            },
+            {
+              "tt": 2,
+              "name": "Nhỏ keo cuộn cảm",
+              "detail": null,
+              "seconds": 11,
+              "note": null
+            },
+            {
+              "tt": 3,
+              "name": "Nạp chương trình",
+              "detail": null,
+              "seconds": 47,
+              "note": null
+            },
+            {
+              "tt": 4,
+              "name": "Kiểm tra dòng sạc, dòng tiêu thụ",
+              "detail": null,
+              "seconds": 18,
+              "note": null
+            },
+            {
+              "tt": 5,
+              "name": "Kiểm tra FCT",
+              "detail": null,
+              "seconds": 54,
+              "note": null
+            },
+            {
+              "tt": 6,
+              "name": "Cài cấu hình",
+              "detail": null,
+              "seconds": 19,
+              "note": null
+            },
+            {
+              "tt": 7,
+              "name": "Lắp trụ sáng, nút nhấn",
+              "detail": null,
+              "seconds": 24,
+              "note": null
+            },
+            {
+              "tt": 8,
+              "name": "Lắp nắp phụ",
+              "detail": null,
+              "seconds": 13,
+              "note": null
+            },
+            {
+              "tt": 9,
+              "name": "Lắp pin vào tấm bắt PCB",
+              "detail": null,
+              "seconds": 26,
+              "note": null
+            },
+            {
+              "tt": 10,
+              "name": "Lắp bo mạch vào vỏ, lắp vỏ",
+              "detail": null,
+              "seconds": 36,
+              "note": null
+            },
+            {
+              "tt": 11,
+              "name": "Nhỏ keo NTC",
+              "detail": null,
+              "seconds": 30,
+              "note": null
+            },
+            {
+              "tt": 12,
+              "name": "Dán tem thiết bị",
+              "detail": null,
+              "seconds": 18,
+              "note": null
+            },
+            {
+              "tt": 13,
+              "name": "Cài xuất xưởng",
+              "detail": null,
+              "seconds": 90,
+              "note": null
+            },
+            {
+              "tt": 14,
+              "name": "Kiểm xuất xưởng",
+              "detail": null,
+              "seconds": 34,
+              "note": "QC"
+            },
+            {
+              "tt": 15,
+              "name": "Lắp nắp che pin",
+              "detail": null,
+              "seconds": 20,
+              "note": null
+            },
+            {
+              "tt": 16,
+              "name": "Kiểm tra Pin",
+              "detail": null,
+              "seconds": 12,
+              "note": null
+            },
+            {
+              "tt": 17,
+              "name": "Kiểm tra adapter",
+              "detail": null,
+              "seconds": 32,
+              "note": null
+            }
+          ],
+          "seq": 30
+        },
+        {
+          "code": "BG",
+          "name": "Bao gói",
+          "ops": [
+            {
+              "tt": 1,
+              "name": "Dán tem niêm phong",
+              "detail": null,
+              "seconds": 40,
+              "note": null
+            },
+            {
+              "tt": 2,
+              "name": "Đóng túi zip phụ kiện",
+              "detail": null,
+              "seconds": 30,
+              "note": null
+            },
+            {
+              "tt": 3,
+              "name": "Đóng hộp phụ kiện, adapter",
+              "detail": null,
+              "seconds": 29,
+              "note": null
+            },
+            {
+              "tt": 4,
+              "name": "Xếp các bộ phận vào hộp, in, dán, kiểm tra serial tem",
+              "detail": null,
+              "seconds": 80,
+              "note": null
+            },
+            {
+              "tt": 5,
+              "name": "Lắp đế, bọc túi CPE",
+              "detail": null,
+              "seconds": 120,
+              "note": null
+            },
+            {
+              "tt": 6,
+              "name": "Kiểm tra bao gói",
+              "detail": null,
+              "seconds": 20,
+              "note": "QC"
+            },
+            {
+              "tt": 7,
+              "name": "Đóng thùng",
+              "detail": null,
+              "seconds": 20,
+              "note": null
+            }
+          ],
+          "seq": 40,
+          "dependsOnAll": true
+        }
+      ]
+    }
+  ]
+}

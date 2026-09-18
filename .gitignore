@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+build/
+.DS_Store
+
+# BIẾN MÔI TRƯỜNG — chứa mật khẩu database, không bao giờ đẩy lên GitHub
+.env
+.env*.local
+
+*.tsbuildinfo
+next-env.d.ts
+
+# Bo cong cu ECC cho Claude Code - khong thuoc ma nguon ung dung
+.claude/
