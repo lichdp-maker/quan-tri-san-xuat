@@ -55,6 +55,7 @@ model Team {
 
   members     User[]       @relation("TeamMembers")
   assignments Assignment[]
+  lines       Line[]
 }
 
 // ============================================================
@@ -106,6 +107,7 @@ model Operation {
   unitPrice       Decimal? @db.Decimal(12, 2) // giai đoạn 2: lương sản phẩm
 
   orderOperations OrderOperation[]
+  seats           Seat[]
 
   @@unique([sectionId, seq])
   @@index([sectionId, isActive])
@@ -124,6 +126,7 @@ model Shift {
 
   timeSlots   TimeSlot[]
   assignments Assignment[]
+  lines       Line[]
 }
 
 model TimeSlot {
@@ -171,6 +174,7 @@ model ProductionOrder {
   closedAt    DateTime?
 
   operations OrderOperation[]
+  lines      Line[]
 
   @@index([status, dueDate])
 }
@@ -195,6 +199,51 @@ model OrderOperation {
 }
 
 // ============================================================
+// DÂY CHUYỀN & VỊ TRÍ NGỒI
+// Sơ đồ dây chuyền ngồi hai mặt. Mỗi vị trí gắn sẵn một nguyên công;
+// kéo công nhân vào vị trí là người đó nhận nguyên công của vị trí đó.
+// ============================================================
+model Line {
+  id       String  @id @default(cuid())
+  code     String  @unique // DC1, DC2
+  name     String
+  soGhe    Int     @default(20)
+  teamId   String?
+  team     Team?   @relation(fields: [teamId], references: [id])
+  isActive Boolean @default(true)
+
+  // Lệnh đang chạy trên dây chuyền này — quyết định nguyên công nào gán được cho ghế
+  currentOrderId String?
+  currentOrder   ProductionOrder? @relation(fields: [currentOrderId], references: [id])
+  shiftId        String?
+  shift          Shift?           @relation(fields: [shiftId], references: [id])
+
+  seats Seat[]
+}
+
+enum SeatSide {
+  A // mặt trên của dây chuyền
+  B // mặt dưới
+}
+
+model Seat {
+  id     String   @id @default(cuid())
+  lineId String
+  line   Line     @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  seq    Int // số thứ tự vị trí trong mặt đó: 1..10
+  side   SeatSide
+  label  String? // tên gọi riêng nếu có
+
+  operationId String?
+  operation   Operation? @relation(fields: [operationId], references: [id])
+
+  assignments Assignment[]
+
+  @@unique([lineId, side, seq])
+  @@index([lineId])
+}
+
+// ============================================================
 // PHÂN CÔNG & NHẬP LIỆU
 // Một công nhân có thể được gán NHIỀU nguyên công, NHIỀU lệnh trong cùng một ngày.
 // ============================================================
@@ -210,6 +259,8 @@ model Assignment {
   shift            Shift          @relation(fields: [shiftId], references: [id])
   workDate         DateTime       @db.Date
   targetQty        Int?                      // chỉ tiêu ca (phụ)
+  seatId           String?                   // vị trí ngồi trên dây chuyền, nếu gán bằng sơ đồ
+  seat             Seat?          @relation(fields: [seatId], references: [id])
   assignedById     String
   createdAt        DateTime       @default(now())
 

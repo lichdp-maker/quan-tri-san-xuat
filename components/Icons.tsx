@@ -92,6 +92,18 @@ export function IconChiaKhoa({ className = 'h-6 w-6' }: P) {
   )
 }
 
+export function IconSoDo({ className = 'h-6 w-6' }: P) {
+  return (
+    <svg {...chung} className={className}>
+      <rect x="3" y="4" width="5.5" height="4.5" rx="1.2" />
+      <rect x="15.5" y="4" width="5.5" height="4.5" rx="1.2" />
+      <rect x="3" y="15.5" width="5.5" height="4.5" rx="1.2" />
+      <rect x="15.5" y="15.5" width="5.5" height="4.5" rx="1.2" />
+      <path d="M3 12h18" />
+    </svg>
+  )
+}
+
 export function IconMuiTenPhai({ className = 'h-5 w-5' }: P) {
   return (
     <svg {...chung} className={className}>
