@@ -16,6 +16,16 @@ type Ghe = {
 }
 type NguyenCong = { id: string; ten: string; boPhan: string; giay: number; conLai: number }
 type CongNhan = { id: string; ma: string; ten: string; to: string; daNgoi: boolean }
+type Lenh = {
+  ma: string
+  sanPham: string
+  maSanPham: string
+  soLuong: number
+  donVi: string
+  xong: number
+  ca: string | null
+  soNguyenCong: number
+}
 
 /** Bỏ dấu để tìm kiếm gõ không dấu vẫn ra. */
 function khongDau(s: string) {
@@ -30,14 +40,14 @@ function khongDau(s: string) {
 export default function SoDoDayChuyen({
   ngay,
   coLenh,
-  tenLenh,
+  lenh,
   ghe,
   congNhan,
   nguyenCongs,
 }: {
   ngay: string
   coLenh: boolean
-  tenLenh: string | null
+  lenh: Lenh | null
   ghe: Ghe[]
   congNhan: CongNhan[]
   nguyenCongs: NguyenCong[]
@@ -245,6 +255,9 @@ export default function SoDoDayChuyen({
         </div>
       )}
 
+      {/* Lệnh đang chạy trên dây chuyền */}
+      {lenh && <BangLenh lenh={lenh} ngay={ngay} />}
+
       {/* Sơ đồ dây chuyền */}
       <section className="min-w-0">
         <div className="the">
@@ -257,9 +270,6 @@ export default function SoDoDayChuyen({
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <p className="hidden text-sm text-slate-500 sm:block">
-                {tenLenh ?? 'Chưa chọn lệnh sản xuất'}
-              </p>
               <div className="flex rounded-lg border border-slate-300 p-0.5 text-xs">
                 <button
                   onClick={() => setChe('bang')}
@@ -316,7 +326,9 @@ export default function SoDoDayChuyen({
                     Băng chuyền
                   </span>
                   <span className="flex-1 border-t-2 border-dashed border-slate-400/70" />
-                  <span className="text-xs text-slate-600">→ chiều đi của sản phẩm</span>
+                  <span className="truncate text-xs font-medium text-slate-700">
+                    {lenh ? `${lenh.sanPham} →` : '→ chiều đi của sản phẩm'}
+                  </span>
                 </div>
 
                 <div className="mt-2 flex gap-2">
@@ -461,6 +473,62 @@ export default function SoDoDayChuyen({
         />
       )}
     </div>
+  )
+}
+
+/** Dải nổi bật: dây chuyền đang chạy lệnh nào, sản phẩm gì, bao nhiêu cái. */
+function BangLenh({ lenh, ngay }: { lenh: Lenh; ngay: string }) {
+  const con = Math.max(lenh.soLuong - lenh.xong, 0)
+  const pt = lenh.soLuong > 0 ? Math.min(Math.round((lenh.xong / lenh.soLuong) * 100), 100) : 0
+
+  return (
+    <section className="overflow-hidden rounded-2xl bg-gradient-to-r from-brand-700 via-brand-600 to-brand-500 text-white shadow-[0_18px_36px_-20px_rgba(37,99,235,0.95)]">
+      <div className="flex flex-wrap items-end justify-between gap-4 px-5 py-4">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/70">
+            Lệnh đang chạy · {ngay}
+            {lenh.ca ? ` · ${lenh.ca}` : ''}
+          </p>
+          <p className="mt-1 truncate text-xl font-bold leading-tight sm:text-2xl">
+            {lenh.sanPham}
+          </p>
+          <p className="mt-0.5 text-sm text-white/80">
+            Lệnh {lenh.ma} · mã SP {lenh.maSanPham} · {lenh.soNguyenCong} nguyên công
+          </p>
+        </div>
+
+        <div className="flex items-end gap-5">
+          <div>
+            <p className="text-[11px] uppercase tracking-wider text-white/70">Sản lượng lệnh</p>
+            <p className="text-3xl font-bold leading-none tabular-nums">
+              {lenh.soLuong.toLocaleString('vi-VN')}
+              <span className="ml-1 text-sm font-normal text-white/80">{lenh.donVi}</span>
+            </p>
+          </div>
+          <div className="border-l border-white/25 pl-5">
+            <p className="text-[11px] uppercase tracking-wider text-white/70">Đã xong</p>
+            <p className="text-3xl font-bold leading-none tabular-nums">
+              {lenh.xong.toLocaleString('vi-VN')}
+            </p>
+          </div>
+          <div className="border-l border-white/25 pl-5">
+            <p className="text-[11px] uppercase tracking-wider text-white/70">Còn lại</p>
+            <p className="text-3xl font-bold leading-none tabular-nums">
+              {con.toLocaleString('vi-VN')}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-5 pb-4">
+        <div className="h-2.5 overflow-hidden rounded-full bg-white/25">
+          <div className="h-full rounded-full bg-white transition-all" style={{ width: `${pt}%` }} />
+        </div>
+        <p className="mt-1.5 text-xs text-white/80">
+          Hoàn thành {pt}% · tính theo số lượng đã qua hết tất cả nguyên công của lệnh
+        </p>
+      </div>
+    </section>
   )
 }
 

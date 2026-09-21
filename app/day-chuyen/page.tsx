@@ -157,8 +157,23 @@ export default async function TrangDayChuyen({
             <SoDoDayChuyen
               ngay={dinhDangNgay(ymd)}
               coLenh={!!line.currentOrderId && !!line.shiftId}
-              tenLenh={
-                line.currentOrder ? `${line.currentOrder.code} · ${line.currentOrder.product.name}` : null
+              lenh={
+                line.currentOrder
+                  ? {
+                      ma: line.currentOrder.code,
+                      sanPham: line.currentOrder.product.name,
+                      maSanPham: line.currentOrder.product.code,
+                      soLuong: line.currentOrder.quantity,
+                      donVi: line.currentOrder.product.unit,
+                      // Đã xong = số lượng đã qua hết mọi nguyên công của lệnh
+                      xong:
+                        nguyenCongs.length > 0
+                          ? Math.min(...nguyenCongs.map((oo) => oo.doneQtyOk))
+                          : 0,
+                      ca: line.shift?.name ?? null,
+                      soNguyenCong: nguyenCongs.length,
+                    }
+                  : null
               }
               ghe={ghe.map((g) => {
                 const a = g.assignments[0]
