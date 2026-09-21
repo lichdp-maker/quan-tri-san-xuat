@@ -64,13 +64,11 @@ export default async function TrangDayChuyen({
       })
     : []
 
+  // Tổ trưởng chỉ thấy người trong tổ mình; quản lý thấy toàn bộ công nhân đang làm việc
   const congNhan = await prisma.user.findMany({
-    where: {
-      isActive: true,
-      role: { in: ['WORKER', 'TEAM_LEADER'] },
-      ...(line?.teamId ? { teamId: line.teamId } : locTo),
-    },
-    orderBy: { employeeCode: 'asc' },
+    where: { isActive: true, role: { in: ['WORKER', 'TEAM_LEADER'] }, ...locTo },
+    include: { team: true },
+    orderBy: [{ team: { code: 'asc' } }, { employeeCode: 'asc' }],
   })
 
   const dangNgoi = new Set(ghe.flatMap((g) => g.assignments.map((a) => a.userId)))
@@ -186,6 +184,7 @@ export default async function TrangDayChuyen({
                 id: c.id,
                 ma: c.employeeCode,
                 ten: c.fullName,
+                to: c.team?.name ?? 'Chưa thuộc tổ',
                 daNgoi: dangNgoi.has(c.id),
               }))}
               nguyenCongs={nguyenCongs.map((oo) => ({

@@ -15,7 +15,7 @@ type Ghe = {
   nguoi: Nguoi | null
 }
 type NguyenCong = { id: string; ten: string; boPhan: string; giay: number; conLai: number }
-type CongNhan = { id: string; ma: string; ten: string; daNgoi: boolean }
+type CongNhan = { id: string; ma: string; ten: string; to: string; daNgoi: boolean }
 
 export default function SoDoDayChuyen({
   ngay,
@@ -35,7 +35,15 @@ export default function SoDoDayChuyen({
   const [dangChon, setDangChon] = useState<string | null>(null) // id công nhân đang chọn
   const [gheSang, setGheSang] = useState<string | null>(null) // ghế đang rê qua
   const [bao, setBao] = useState<{ loi?: string; ok?: string } | null>(null)
+  const [locTo, setLocTo] = useState<string>('')
+  const [anDaXep, setAnDaXep] = useState(false)
   const [dangChay, batDau] = useTransition()
+
+  const dsTo = [...new Set(congNhan.map((c) => c.to))].sort()
+  const dsLoc = congNhan.filter(
+    (c) => (!locTo || c.to === locTo) && (!anDaXep || !c.daNgoi),
+  )
+  const soConTrong = congNhan.filter((c) => !c.daNgoi).length
 
   const matA = ghe.filter((g) => g.side === 'A')
   const matB = ghe.filter((g) => g.side === 'B')
@@ -159,43 +167,9 @@ export default function SoDoDayChuyen({
   }
 
   return (
-    <div className="flex flex-col gap-4 lg:flex-row">
-      {/* Danh sách công nhân */}
-      <aside className="the h-fit w-full lg:w-64">
-        <p className="mb-1 font-semibold">Công nhân</p>
-        <p className="mb-3 text-xs text-slate-500">
-          Kéo tên vào vị trí trên dây chuyền. Trên điện thoại thì bấm chọn tên rồi bấm vào vị trí.
-        </p>
-
-        <div className="flex flex-wrap gap-1.5 lg:flex-col">
-          {congNhan.map((c) => (
-            <button
-              key={c.id}
-              draggable={!c.daNgoi}
-              onDragStart={(e) => e.dataTransfer.setData('text/plain', c.id)}
-              onClick={() => setDangChon(dangChon === c.id ? null : c.id)}
-              disabled={c.daNgoi}
-              className={[
-                'rounded-lg border px-2.5 py-1.5 text-left text-xs transition',
-                c.daNgoi
-                  ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400'
-                  : dangChon === c.id
-                    ? 'border-brand-600 bg-brand-600 text-white'
-                    : 'cursor-grab border-slate-300 bg-white hover:border-brand-400',
-              ].join(' ')}
-            >
-              <span className="block font-medium leading-tight">{c.ten}</span>
-              <span className="text-[11px] opacity-70">
-                {c.ma}
-                {c.daNgoi && ' · đã xếp'}
-              </span>
-            </button>
-          ))}
-        </div>
-      </aside>
-
+    <div className="flex flex-col gap-4">
       {/* Sơ đồ dây chuyền */}
-      <section className="min-w-0 flex-1">
+      <section className="min-w-0">
         <div className="the">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
             <p className="font-semibold">Sơ đồ chỗ ngồi · {ngay}</p>
@@ -259,6 +233,85 @@ export default function SoDoDayChuyen({
             người vào được. Người đã nhập số liệu thì không gỡ khỏi vị trí được nữa.
           </p>
         </div>
+      </section>
+
+      {/* Danh sách công nhân — nằm dưới dây chuyền */}
+      <section className="the">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="font-semibold">
+              Công nhân{' '}
+              <span className="text-sm font-normal text-slate-500">
+                · {soConTrong} người chưa xếp / {congNhan.length}
+              </span>
+            </p>
+            <p className="text-xs text-slate-500">
+              Kéo tên lên vị trí trên dây chuyền. Trên điện thoại thì bấm chọn tên rồi bấm vào vị trí.
+            </p>
+          </div>
+
+          <label className="flex items-center gap-2 text-xs text-slate-600">
+            <input
+              type="checkbox"
+              checked={anDaXep}
+              onChange={(e) => setAnDaXep(e.target.checked)}
+            />
+            Ẩn người đã xếp
+          </label>
+        </div>
+
+        {dsTo.length > 1 && (
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            <button onClick={() => setLocTo('')} className={locTo === '' ? 'chip-bat' : 'chip-tat'}>
+              Tất cả
+            </button>
+            {dsTo.map((t) => (
+              <button
+                key={t}
+                onClick={() => setLocTo(locTo === t ? '' : t)}
+                className={locTo === t ? 'chip-bat' : 'chip-tat'}
+              >
+                {t}
+                <span className="ml-1 opacity-70">
+                  {congNhan.filter((c) => c.to === t && !c.daNgoi).length}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {dsLoc.length === 0 ? (
+          <p className="text-sm text-slate-500">
+            Không có công nhân nào để xếp. Kiểm tra lại bộ lọc tổ ở trên, hoặc vào mục Quản trị để
+            thêm người vào tổ.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
+            {dsLoc.map((c) => (
+              <button
+                key={c.id}
+                draggable={!c.daNgoi}
+                onDragStart={(e) => e.dataTransfer.setData('text/plain', c.id)}
+                onClick={() => setDangChon(dangChon === c.id ? null : c.id)}
+                disabled={c.daNgoi}
+                className={[
+                  'rounded-lg border px-2.5 py-1.5 text-left text-xs transition',
+                  c.daNgoi
+                    ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400'
+                    : dangChon === c.id
+                      ? 'border-brand-600 bg-brand-600 text-white'
+                      : 'cursor-grab border-slate-300 bg-white hover:border-brand-400',
+                ].join(' ')}
+              >
+                <span className="block truncate font-medium leading-tight">{c.ten}</span>
+                <span className="block truncate text-[11px] opacity-70">
+                  {c.ma} · {c.to}
+                  {c.daNgoi && ' · đã xếp'}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   )
