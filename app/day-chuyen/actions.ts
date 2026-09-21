@@ -7,7 +7,7 @@ import { ngayHomNay, ngayLamViec } from '@/lib/date'
 
 const QUAN_LY = ['TEAM_LEADER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'] as const
 
-export type KetQua = { ok?: boolean; loi?: string }
+export type KetQua = { ok?: boolean; loi?: string; chu?: string }
 
 /** Tạo dây chuyền mới kèm đủ ghế hai mặt. */
 export async function taoDayChuyen(formData: FormData): Promise<void> {
@@ -33,6 +33,60 @@ export async function taoDayChuyen(formData: FormData): Promise<void> {
 
     await tx.auditLog.create({
       data: { userId: u.id, action: 'TAO_DAY_CHUYEN', entityType: 'Line', entityId: line.id, after: { code, soGhe } },
+    })
+  })
+
+  revalidatePath('/day-chuyen')
+}
+
+/**
+ * Sửa một dây chuyền đã có: đổi tên, đổi tổ, tăng giảm số ghế, hoặc cho ngừng dùng.
+ * Tăng ghế thì thêm vào cho đủ hai mặt; giảm ghế chỉ xóa được những ghế chưa ai ngồi.
+ */
+export async function doiDayChuyen(formData: FormData): Promise<void> {
+  const u = await batBuocDangNhap('SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR')
+
+  const lineId = String(formData.get('lineId') ?? '')
+  const name = String(formData.get('name') ?? '').trim()
+  const soGhe = Number(String(formData.get('soGhe') ?? '0'))
+  const teamId = String(formData.get('teamId') ?? '')
+  const conDung = String(formData.get('conDung') ?? '') === 'co'
+  if (!lineId || !name || !Number.isFinite(soGhe) || soGhe < 2 || soGhe > 60) return
+
+  await prisma.$transaction(async (tx) => {
+    await tx.line.update({
+      where: { id: lineId },
+      data: { name, soGhe, teamId: teamId || null, isActive: conDung },
+    })
+
+    const ghe = await tx.seat.findMany({ where: { lineId }, select: { id: true, side: true, seq: true } })
+    const mucA = Math.ceil(soGhe / 2)
+
+    for (const [side, muc] of [
+      ['A', mucA],
+      ['B', soGhe - mucA],
+    ] as const) {
+      const hienCo = ghe.filter((g) => g.side === side)
+      const coSeq = new Set(hienCo.map((g) => g.seq))
+
+      const them: Array<{ lineId: string; side: 'A' | 'B'; seq: number }> = []
+      for (let i = 1; i <= muc; i++) if (!coSeq.has(i)) them.push({ lineId, side, seq: i })
+      if (them.length) await tx.seat.createMany({ data: them })
+
+      const du = hienCo.filter((g) => g.seq > muc).map((g) => g.id)
+      if (du.length) {
+        await tx.seat.deleteMany({ where: { id: { in: du }, assignments: { none: {} } } })
+      }
+    }
+
+    await tx.auditLog.create({
+      data: {
+        userId: u.id,
+        action: 'SUA_DAY_CHUYEN',
+        entityType: 'Line',
+        entityId: lineId,
+        after: { name, soGhe, isActive: conDung },
+      },
     })
   })
 
@@ -141,8 +195,22 @@ export async function ganNguoiVaoGhe(seatId: string, userId: string): Promise<Ke
     },
   })
 
+  // Nhắc nếu người này còn đang ngồi ở chuyền khác trong cùng ngày
+  const noiKhac = await prisma.assignment.findMany({
+    where: { userId, workDate, seatId: { not: null }, seat: { lineId: { not: seat.lineId } } },
+    select: { seat: { select: { side: true, seq: true, line: { select: { name: true } } } } },
+  })
+
   revalidatePath('/day-chuyen')
-  return { ok: true }
+  return {
+    ok: true,
+    chu:
+      noiKhac.length > 0
+        ? `Lưu ý: ${cn.fullName} còn đang ngồi ở ${noiKhac
+            .map((n) => `${n.seat!.line.name} ${n.seat!.side}${n.seat!.seq}`)
+            .join(', ')}.`
+        : undefined,
+  }
 }
 
 /** Gỡ người khỏi vị trí. Chỉ gỡ được khi người đó chưa nhập số liệu nào. */

@@ -15,7 +15,8 @@ type Ghe = {
   nguoi: Nguoi | null
 }
 type NguyenCong = { id: string; ten: string; boPhan: string; giay: number; conLai: number }
-type CongNhan = { id: string; ma: string; ten: string; to: string; daNgoi: boolean }
+/** dangO: tên những chuyền người này đang ngồi hôm nay (có thể ngồi nhiều chuyền). */
+type CongNhan = { id: string; ma: string; ten: string; to: string; dangO: string[] }
 type Lenh = {
   ma: string
   sanPham: string
@@ -44,6 +45,7 @@ export default function SoDoDayChuyen({
   ghe,
   congNhan,
   nguyenCongs,
+  tenChuyenNay,
 }: {
   ngay: string
   coLenh: boolean
@@ -51,6 +53,7 @@ export default function SoDoDayChuyen({
   ghe: Ghe[]
   congNhan: CongNhan[]
   nguyenCongs: NguyenCong[]
+  tenChuyenNay: string
 }) {
   const [dangChon, setDangChon] = useState<string | null>(null) // công nhân đang cầm trên tay
   const [gheSang, setGheSang] = useState<string | null>(null) // ghế đang rê qua
@@ -65,7 +68,7 @@ export default function SoDoDayChuyen({
   const khungRef = useRef<HTMLDivElement>(null)
 
   const dsTo = useMemo(() => [...new Set(congNhan.map((c) => c.to))].sort(), [congNhan])
-  const soConTrong = congNhan.filter((c) => !c.daNgoi).length
+  const soConTrong = congNhan.filter((c) => c.dangO.length === 0).length
   const daXep = ghe.filter((g) => g.nguoi).length
   const choTrong = ghe.filter((g) => !g.nguoi && g.operationId).length
   const chuaGanNC = ghe.filter((g) => !g.operationId).length
@@ -73,8 +76,9 @@ export default function SoDoDayChuyen({
   const dsLoc = useMemo(() => {
     const k = khongDau(tim.trim())
     return congNhan
-      .filter((c) => (!locTo || c.to === locTo) && (!anDaXep || !c.daNgoi))
+      .filter((c) => (!locTo || c.to === locTo) && (!anDaXep || c.dangO.length === 0))
       .filter((c) => !k || khongDau(c.ten).includes(k) || khongDau(c.ma).includes(k))
+      .sort((a, b) => a.dangO.length - b.dangO.length)
   }, [congNhan, locTo, anDaXep, tim])
 
   const nguoiDangCam = congNhan.find((c) => c.id === dangChon) ?? null
@@ -98,7 +102,7 @@ export default function SoDoDayChuyen({
     setBao(null)
     batDau(async () => {
       const kq = await ganNguoiVaoGhe(seatId, userId)
-      setBao(kq.loi ? { loi: kq.loi } : { ok: 'Đã xếp chỗ' })
+      setBao(kq.loi ? { loi: kq.loi } : { ok: kq.chu ?? 'Đã xếp chỗ' })
       if (!kq.loi) {
         setDangChon(null)
         setMoGhe(null)
@@ -256,7 +260,7 @@ export default function SoDoDayChuyen({
       )}
 
       {/* Lệnh đang chạy trên dây chuyền */}
-      {lenh && <BangLenh lenh={lenh} ngay={ngay} />}
+      {lenh && <BangLenh lenh={lenh} ngay={ngay} chuyen={tenChuyenNay} />}
 
       {/* Sơ đồ dây chuyền */}
       <section className="min-w-0">
@@ -361,7 +365,8 @@ export default function SoDoDayChuyen({
           <p className="mt-3 text-xs text-slate-500">
             Bấm vào một vị trí để chọn nguyên công và chọn người ngay tại đó. Hoặc bấm tên người ở
             danh sách dưới rồi bấm vào vị trí. Trên máy tính vẫn kéo thả được. Người đã nhập số liệu
-            thì không gỡ khỏi vị trí được nữa.
+            thì không gỡ khỏi vị trí được nữa. Một người vẫn xếp được sang chuyền khác — hệ thống sẽ
+            nhắc nếu người đó đang ngồi ở chuyền khác.
           </p>
         </div>
       </section>
@@ -413,7 +418,7 @@ export default function SoDoDayChuyen({
               >
                 {t}
                 <span className="ml-1 opacity-70">
-                  {congNhan.filter((c) => c.to === t && !c.daNgoi).length}
+                  {congNhan.filter((c) => c.to === t && c.dangO.length === 0).length}
                 </span>
               </button>
             ))}
@@ -427,33 +432,44 @@ export default function SoDoDayChuyen({
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
-            {dsLoc.map((c) => (
-              <button
-                key={c.id}
-                draggable={!c.daNgoi}
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('text/plain', c.id)
-                  setDangChon(c.id)
-                }}
-                onDragEnd={() => setGheSang(null)}
-                onClick={() => setDangChon(dangChon === c.id ? null : c.id)}
-                disabled={c.daNgoi}
-                className={[
-                  'rounded-lg border px-2.5 py-1.5 text-left text-xs transition',
-                  c.daNgoi
-                    ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400'
-                    : dangChon === c.id
+            {dsLoc.map((c) => {
+              const daXepRoi = c.dangO.length > 0
+              return (
+                <button
+                  key={c.id}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', c.id)
+                    setDangChon(c.id)
+                  }}
+                  onDragEnd={() => setGheSang(null)}
+                  onClick={() => setDangChon(dangChon === c.id ? null : c.id)}
+                  className={[
+                    'rounded-lg border px-2.5 py-1.5 text-left text-xs transition',
+                    dangChon === c.id
                       ? 'border-brand-600 bg-brand-600 text-white'
-                      : 'cursor-grab border-slate-300 bg-white hover:border-brand-400',
-                ].join(' ')}
-              >
-                <span className="block truncate font-medium leading-tight">{c.ten}</span>
-                <span className="block truncate text-[11px] opacity-70">
-                  {c.ma} · {c.to}
-                  {c.daNgoi && ' · đã xếp'}
-                </span>
-              </button>
-            ))}
+                      : daXepRoi
+                        ? 'cursor-grab border-amber-200 bg-amber-50/70 hover:border-amber-400'
+                        : 'cursor-grab border-slate-300 bg-white hover:border-brand-400',
+                  ].join(' ')}
+                >
+                  <span className="block truncate font-medium leading-tight">{c.ten}</span>
+                  <span className="block truncate text-[11px] opacity-70">
+                    {c.ma} · {c.to}
+                  </span>
+                  {daXepRoi && (
+                    <span
+                      className={[
+                        'mt-0.5 block truncate text-[11px]',
+                        dangChon === c.id ? 'text-white/85' : 'text-amber-700',
+                      ].join(' ')}
+                    >
+                      đang ở {c.dangO.join(', ')}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         )}
       </section>
@@ -463,6 +479,7 @@ export default function SoDoDayChuyen({
         <BangGhe
           g={gheDangMo}
           coLenh={coLenh}
+          tenChuyen={tenChuyenNay}
           nguyenCongs={nguyenCongs}
           congNhan={congNhan}
           dangChay={dangChay}
@@ -477,7 +494,7 @@ export default function SoDoDayChuyen({
 }
 
 /** Dải nổi bật: dây chuyền đang chạy lệnh nào, sản phẩm gì, bao nhiêu cái. */
-function BangLenh({ lenh, ngay }: { lenh: Lenh; ngay: string }) {
+function BangLenh({ lenh, ngay, chuyen }: { lenh: Lenh; ngay: string; chuyen: string }) {
   const con = Math.max(lenh.soLuong - lenh.xong, 0)
   const pt = lenh.soLuong > 0 ? Math.min(Math.round((lenh.xong / lenh.soLuong) * 100), 100) : 0
 
@@ -486,7 +503,7 @@ function BangLenh({ lenh, ngay }: { lenh: Lenh; ngay: string }) {
       <div className="flex flex-wrap items-end justify-between gap-4 px-5 py-4">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/70">
-            Lệnh đang chạy · {ngay}
+            {chuyen} · lệnh đang chạy · {ngay}
             {lenh.ca ? ` · ${lenh.ca}` : ''}
           </p>
           <p className="mt-1 truncate text-xl font-bold leading-tight sm:text-2xl">
@@ -535,6 +552,7 @@ function BangLenh({ lenh, ngay }: { lenh: Lenh; ngay: string }) {
 function BangGhe({
   g,
   coLenh,
+  tenChuyen,
   nguyenCongs,
   congNhan,
   dangChay,
@@ -545,6 +563,7 @@ function BangGhe({
 }: {
   g: Ghe
   coLenh: boolean
+  tenChuyen: string
   nguyenCongs: NguyenCong[]
   congNhan: CongNhan[]
   dangChay: boolean
@@ -558,8 +577,9 @@ function BangGhe({
 
   const k = khongDau(tim.trim())
   const ds = congNhan
-    .filter((c) => !c.daNgoi)
     .filter((c) => !k || khongDau(c.ten).includes(k) || khongDau(c.ma).includes(k))
+    .sort((a, b) => a.dangO.length - b.dangO.length)
+    .slice(0, 60)
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
@@ -572,6 +592,7 @@ function BangGhe({
               {g.seq}
             </p>
             <p className="truncate text-xs text-slate-500">
+              {tenChuyen} ·{' '}
               {g.tenNguyenCong ? `${g.tenNguyenCong} · ${g.dinhMucGiay}s` : 'Chưa gán nguyên công'}
             </p>
           </div>
@@ -683,9 +704,14 @@ function BangGhe({
                       >
                         <span className="min-w-0">
                           <span className="block truncate font-medium">{c.ten}</span>
-                          <span className="text-[11px] text-slate-500">
+                          <span className="block truncate text-[11px] text-slate-500">
                             {c.ma} · {c.to}
                           </span>
+                          {c.dangO.length > 0 && (
+                            <span className="block truncate text-[11px] text-amber-700">
+                              đang ở {c.dangO.join(', ')}
+                            </span>
+                          )}
                         </span>
                         <span className="shrink-0 text-xs text-brand-700">Xếp vào →</span>
                       </button>
