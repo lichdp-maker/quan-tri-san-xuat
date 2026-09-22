@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { hash } from '@node-rs/argon2'
 import { prisma } from '@/lib/prisma'
-import { batBuocDangNhap, caoHon } from '@/lib/session'
+import { batBuocDangNhap } from '@/lib/session'
+import { caoHon, duocSuaNguoiDung, duocDatLaiMatKhau } from '@/lib/quyen'
 import { soPhut } from '@/lib/date'
 import { kiemTraMatKhau, sinhPin } from '@/lib/mat-khau'
 import type { Role } from '@prisma/client'
@@ -138,14 +139,8 @@ export async function suaNguoiDung(formData: FormData): Promise<void> {
   const mucTieu = await prisma.user.findUnique({ where: { id }, select: { role: true } })
   if (!mucTieu) return
 
-  // Không tự khoá chính mình, tránh khoá hết người quản trị
-  if (id === u.id && !isActive) return
-  // Không tự nâng quyền cho chính mình
-  if (id === u.id && role !== mucTieu.role) return
-  // Chỉ sửa được người có cấp thấp hơn mình
-  if (id !== u.id && !caoHon(u.role, mucTieu.role)) return
-  // Không cấp cho ai vai trò ngang hoặc cao hơn mình
-  if (role !== mucTieu.role && !caoHon(u.role, role)) return
+  // Chặn leo thang quyền — quy tắc nằm trong lib/quyen.ts và có test riêng
+  if (!duocSuaNguoiDung(u, { id, role: mucTieu.role }, { role, isActive }).ok) return
 
   await prisma.user.update({
     where: { id },
@@ -179,7 +174,7 @@ export async function datLaiMatKhau(formData: FormData): Promise<void> {
   if (!mucTieu) return
   // Không đặt lại mật khẩu của người ngang hoặc cao cấp hơn mình —
   // nếu không, quản lý xưởng chiếm được tài khoản giám đốc.
-  if (id !== u.id && !caoHon(u.role, mucTieu.role)) return
+  if (!duocDatLaiMatKhau(u, { id, role: mucTieu.role })) return
 
   const kiem = kiemTraMatKhau(matKhau, mucTieu.employeeCode)
   if (!kiem.ok) return

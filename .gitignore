@@ -7,9 +7,16 @@ build/
 # BIẾN MÔI TRƯỜNG — chứa mật khẩu database, không bao giờ đẩy lên GitHub
 .env
 .env*.local
+.env.test
 
 *.tsbuildinfo
 next-env.d.ts
 
-# Bo cong cu ECC cho Claude Code - khong thuoc ma nguon ung dung
+# Kết quả test — sinh ra mỗi lần chạy, không đẩy lên
+coverage/
+playwright-report/
+test-results/
+.playwright/
+
+# Bộ cài ECC đặt tại máy, không thuộc mã nguồn web
 .claude/

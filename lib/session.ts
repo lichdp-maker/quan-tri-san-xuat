@@ -8,6 +8,7 @@ import { cookies } from 'next/headers'
 import { SignJWT, jwtVerify } from 'jose'
 import type { Role } from '@prisma/client'
 import { prisma } from './prisma'
+import { phienConHieuLuc } from './quyen'
 
 const TEN_COOKIE = 'phien'
 const HAN_NGAY = 30
@@ -89,14 +90,11 @@ export const nguoiDangDangNhap = cache(async (): Promise<NguoiDung | null> => {
       passwordChangedAt: true,
     },
   })
-  if (!u || !u.isActive) return null
+  if (!u) return null
 
-  // Phiên cấp trước lần đổi mật khẩu gần nhất thì không dùng được nữa.
-  // Trừ 5 giây vì iat của JWT chỉ tính đến giây, còn passwordChangedAt tính đến
-  // mili giây — không có khoảng đệm này thì chính phiên vừa cấp lại bị loại.
-  if (u.passwordChangedAt && capLuc > 0 && capLuc * 1000 < u.passwordChangedAt.getTime() - 5000) {
-    return null
-  }
+  // Quy tắc nằm trong lib/quyen.ts và có test riêng: tài khoản bị khoá thì mất
+  // phiên ngay, và phiên cấp trước lần đổi mật khẩu gần nhất cũng hết hiệu lực.
+  if (!phienConHieuLuc(capLuc, u.passwordChangedAt, u.isActive)) return null
 
   return {
     id: u.id,
@@ -121,22 +119,6 @@ export async function batBuocDangNhap(...vaiTro: Role[]): Promise<NguoiDung> {
   return u
 }
 
-/** Thứ bậc quyền — dùng để chặn thao tác lên người ngang hoặc cao cấp hơn. */
-const CAP: Record<Role, number> = {
-  WORKER: 1,
-  TEAM_LEADER: 2,
-  ENGINEER: 2,
-  WAREHOUSE: 2,
-  PLANNER: 2,
-  SHOP_MANAGER: 3,
-  DEPUTY_DIRECTOR: 4,
-  DIRECTOR: 5,
-}
-
-/** true khi người gọi được phép tác động lên tài khoản có vai trò mucTieu. */
-export function caoHon(nguoiGoi: Role, mucTieu: Role): boolean {
-  return CAP[nguoiGoi] > CAP[mucTieu]
-}
 
 /** Trang mặc định theo vai trò. */
 export function trangChinh(role: Role): string {

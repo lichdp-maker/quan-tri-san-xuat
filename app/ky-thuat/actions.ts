@@ -153,8 +153,13 @@ export async function xuLyPhieuLoi(formData: FormData): Promise<void> {
   const hopLe = ['REWORK', 'SCRAP', 'USE_AS_IS', 'RETURN_SUPPLIER', 'PENDING']
   if (!id || !hopLe.includes(disposition)) return
 
-  await prisma.defectRecord.update({
-    where: { id },
+  // Tổ trưởng chỉ kết luận phiếu lỗi của tổ mình. Không kiểm thì họ đặt
+  // USE_AS_IS cho phiếu lỗi tổ khác, giấu số hỏng của tổ đó khỏi danh sách chờ.
+  const { count } = await prisma.defectRecord.updateMany({
+    where:
+      u.role === 'TEAM_LEADER'
+        ? { id, entry: { assignment: { teamId: u.teamId ?? '\u0000' } } }
+        : { id },
     data: {
       causeId: causeId || null,
       disposition: disposition as 'REWORK' | 'SCRAP' | 'USE_AS_IS' | 'RETURN_SUPPLIER' | 'PENDING',
@@ -163,6 +168,7 @@ export async function xuLyPhieuLoi(formData: FormData): Promise<void> {
       resolvedAt: disposition === 'PENDING' ? null : new Date(),
     },
   })
+  if (count === 0) return
 
   await prisma.auditLog.create({
     data: {

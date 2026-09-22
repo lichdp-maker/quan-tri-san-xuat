@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { batBuocDangNhap } from '@/lib/session'
+import { locBanGhiDuocDuyet, lenhConNhanSanLuong, ngoaiPhamViTo } from '@/lib/quyen'
 import { ngayHomNay, ngayLamViec } from '@/lib/date'
 
 const QUAN_LY = ['TEAM_LEADER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'] as const
@@ -17,11 +18,8 @@ export async function duyetBanGhi(formData: FormData): Promise<void> {
     where: {
       id: { in: ids },
       status: 'PENDING',
-      assignment: {
-        // Không ai tự duyệt sản lượng của chính mình, kể cả tổ trưởng
-        userId: { not: u.id },
-        ...(u.role === 'TEAM_LEADER' ? { teamId: u.teamId ?? '' } : {}),
-      },
+      // Không ai tự duyệt sản lượng của chính mình; tổ trưởng chỉ duyệt tổ mình
+      assignment: locBanGhiDuocDuyet(u),
     },
     select: {
       id: true,
@@ -74,10 +72,7 @@ export async function tuChoiBanGhi(formData: FormData): Promise<void> {
     where: {
       id,
       status: 'PENDING',
-      assignment: {
-        userId: { not: u.id },
-        ...(u.role === 'TEAM_LEADER' ? { teamId: u.teamId ?? '' } : {}),
-      },
+      assignment: locBanGhiDuocDuyet(u),
     },
     data: { status: 'REJECTED', approvedById: u.id, approvedAt: new Date() },
   })
@@ -101,7 +96,19 @@ export async function taoPhanCong(formData: FormData): Promise<void> {
 
   const cn = await prisma.user.findUnique({ where: { id: userId } })
   if (!cn || !cn.isActive || !cn.teamId) return
-  if (u.role === 'TEAM_LEADER' && cn.teamId !== u.teamId) return
+  if (ngoaiPhamViTo(u.role, u.teamId, cn.teamId)) return
+
+  // Không tin id client gửi lên: nguyên công phải thuộc một lệnh còn nhận sản
+  // lượng, nếu không thì phân công được vào lệnh đã đóng và số liệu chui vào
+  // báo cáo của lệnh đó sau khi đã chốt.
+  const oo = await prisma.orderOperation.findUnique({
+    where: { id: orderOperationId },
+    select: { order: { select: { status: true, code: true } } },
+  })
+  if (!oo || !lenhConNhanSanLuong(oo.order.status)) return
+
+  const ca = await prisma.shift.findUnique({ where: { id: shiftId }, select: { isActive: true } })
+  if (!ca || !ca.isActive) return
 
   const workDate = ngayLamViec(ngayHomNay())
 
@@ -136,7 +143,7 @@ export async function xoaPhanCong(formData: FormData): Promise<void> {
     include: { _count: { select: { entries: true } } },
   })
   if (!a || a._count.entries > 0) return
-  if (u.role === 'TEAM_LEADER' && a.teamId !== u.teamId) return
+  if (ngoaiPhamViTo(u.role, u.teamId, a.teamId)) return
 
   await prisma.assignment.delete({ where: { id } })
   revalidatePath('/to-truong/phan-cong')

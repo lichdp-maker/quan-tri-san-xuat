@@ -3,21 +3,16 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { batBuocDangNhap } from '@/lib/session'
+import { ngoaiPhamViTo } from '@/lib/quyen'
 import { ngayHomNay, ngayLamViec } from '@/lib/date'
 
 const QUAN_LY = ['TEAM_LEADER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'] as const
 
 export type KetQua = { ok?: boolean; loi?: string; chu?: string }
 
-/**
- * Tổ trưởng chỉ được thao tác trên dây chuyền của tổ mình.
- * Trang /day-chuyen liệt kê mọi chuyền cho tổ trưởng xem, nên nếu không kiểm ở
- * đây thì họ gửi thẳng id ghế của chuyền tổ khác và sửa được phân công tổ đó.
- */
-function saiTo(vaiTro: string, teamId: string | null, lineTeamId: string | null): boolean {
-  if (vaiTro !== 'TEAM_LEADER') return false
-  return !teamId || lineTeamId !== teamId
-}
+// Tổ trưởng chỉ thao tác trên dây chuyền của tổ mình. Trang /day-chuyen liệt kê
+// mọi chuyền cho tổ trưởng xem, nên nếu không kiểm ở đây thì họ gửi thẳng id ghế
+// của chuyền tổ khác và sửa được phân công của tổ đó.
 
 /** Tạo dây chuyền mới kèm đủ ghế hai mặt. */
 export async function taoDayChuyen(formData: FormData): Promise<void> {
@@ -113,7 +108,7 @@ export async function datLenhChoDayChuyen(formData: FormData): Promise<void> {
   if (!lineId) return
 
   const line = await prisma.line.findUnique({ where: { id: lineId }, select: { teamId: true } })
-  if (!line || saiTo(u.role, u.teamId, line.teamId)) return
+  if (!line || ngoaiPhamViTo(u.role, u.teamId, line.teamId)) return
 
   await prisma.line.update({
     where: { id: lineId },
@@ -137,7 +132,7 @@ export async function ganNguyenCongChoGhe(seatId: string, operationId: string): 
     select: { line: { select: { teamId: true } } },
   })
   if (!ghe) return { loi: 'Không tìm thấy vị trí ngồi.' }
-  if (saiTo(u.role, u.teamId, ghe.line.teamId)) {
+  if (ngoaiPhamViTo(u.role, u.teamId, ghe.line.teamId)) {
     return { loi: 'Dây chuyền này không thuộc tổ của bạn.' }
   }
 
@@ -166,7 +161,7 @@ export async function ganNguoiVaoGhe(seatId: string, userId: string): Promise<Ke
     include: { line: true, operation: true },
   })
   if (!seat) return { loi: 'Không tìm thấy vị trí ngồi.' }
-  if (saiTo(u.role, u.teamId, seat.line.teamId)) {
+  if (ngoaiPhamViTo(u.role, u.teamId, seat.line.teamId)) {
     return { loi: 'Dây chuyền này không thuộc tổ của bạn.' }
   }
   if (!seat.operationId) return { loi: `Vị trí ${seat.side}${seat.seq} chưa gán nguyên công.` }
@@ -248,7 +243,7 @@ export async function goNguoiKhoiGhe(seatId: string): Promise<KetQua> {
     select: { line: { select: { teamId: true } } },
   })
   if (!ghe) return { loi: 'Không tìm thấy vị trí ngồi.' }
-  if (saiTo(u.role, u.teamId, ghe.line.teamId)) {
+  if (ngoaiPhamViTo(u.role, u.teamId, ghe.line.teamId)) {
     return { loi: 'Dây chuyền này không thuộc tổ của bạn.' }
   }
 
