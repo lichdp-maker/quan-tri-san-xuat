@@ -3,9 +3,11 @@
  * Không dùng localStorage, không gửi token ra client.
  */
 import 'server-only'
+import { cache } from 'react'
 import { cookies } from 'next/headers'
 import { SignJWT, jwtVerify } from 'jose'
 import type { Role } from '@prisma/client'
+import { prisma } from './prisma'
 
 const TEN_COOKIE = 'phien'
 const HAN_NGAY = 30
@@ -22,10 +24,12 @@ export type NguoiDung = {
   fullName: string
   role: Role
   teamId: string | null
+  /** true = chưa đổi mật khẩu mặc định, phải đổi trước khi dùng hệ thống */
+  phaiDoiMatKhau: boolean
 }
 
-export async function taoPhien(u: NguoiDung): Promise<void> {
-  const token = await new SignJWT({ ...u })
+export async function taoPhien(u: { id: string }): Promise<void> {
+  const token = await new SignJWT({ id: u.id })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${HAN_NGAY}d`)
@@ -46,30 +50,92 @@ export async function xoaPhien(): Promise<void> {
   store.delete(TEN_COOKIE)
 }
 
-export async function nguoiDangDangNhap(): Promise<NguoiDung | null> {
+/**
+ * Người đang đăng nhập.
+ *
+ * Token chỉ mang id. Vai trò, tổ và trạng thái làm việc luôn đọc lại từ CSDL,
+ * để: khoá tài khoản có hiệu lực ngay, hạ quyền có hiệu lực ngay, chuyển tổ có
+ * hiệu lực ngay, và đổi mật khẩu thì mọi phiên cũ hết hiệu lực.
+ *
+ * Bọc trong cache() của React nên mỗi lượt yêu cầu chỉ truy vấn CSDL một lần,
+ * dù layout, trang và server action cùng gọi.
+ */
+export const nguoiDangDangNhap = cache(async (): Promise<NguoiDung | null> => {
   const store = await cookies()
   const token = store.get(TEN_COOKIE)?.value
   if (!token) return null
+
+  let id = ''
+  let capLuc = 0
   try {
     const { payload } = await jwtVerify(token, khoa())
-    return {
-      id: String(payload.id),
-      employeeCode: String(payload.employeeCode),
-      fullName: String(payload.fullName),
-      role: payload.role as Role,
-      teamId: payload.teamId ? String(payload.teamId) : null,
-    }
+    id = String(payload.id ?? '')
+    capLuc = Number(payload.iat ?? 0)
   } catch {
     return null
   }
-}
+  if (!id) return null
 
-/** Dùng trong server component / server action: không có phiên thì ném lỗi. */
+  const u = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      employeeCode: true,
+      fullName: true,
+      role: true,
+      teamId: true,
+      isActive: true,
+      mustChangePassword: true,
+      passwordChangedAt: true,
+    },
+  })
+  if (!u || !u.isActive) return null
+
+  // Phiên cấp trước lần đổi mật khẩu gần nhất thì không dùng được nữa.
+  // Trừ 5 giây vì iat của JWT chỉ tính đến giây, còn passwordChangedAt tính đến
+  // mili giây — không có khoảng đệm này thì chính phiên vừa cấp lại bị loại.
+  if (u.passwordChangedAt && capLuc > 0 && capLuc * 1000 < u.passwordChangedAt.getTime() - 5000) {
+    return null
+  }
+
+  return {
+    id: u.id,
+    employeeCode: u.employeeCode,
+    fullName: u.fullName,
+    role: u.role,
+    teamId: u.teamId,
+    phaiDoiMatKhau: u.mustChangePassword,
+  }
+})
+
+/**
+ * Dùng trong server component / server action: không có phiên thì ném lỗi.
+ * Người còn cờ "phải đổi mật khẩu" bị chặn mọi thao tác cho tới khi đổi xong —
+ * trang đổi mật khẩu gọi thẳng nguoiDangDangNhap() nên không vướng.
+ */
 export async function batBuocDangNhap(...vaiTro: Role[]): Promise<NguoiDung> {
   const u = await nguoiDangDangNhap()
   if (!u) throw new Error('CHUA_DANG_NHAP')
+  if (u.phaiDoiMatKhau) throw new Error('PHAI_DOI_MAT_KHAU')
   if (vaiTro.length > 0 && !vaiTro.includes(u.role)) throw new Error('KHONG_CO_QUYEN')
   return u
+}
+
+/** Thứ bậc quyền — dùng để chặn thao tác lên người ngang hoặc cao cấp hơn. */
+const CAP: Record<Role, number> = {
+  WORKER: 1,
+  TEAM_LEADER: 2,
+  ENGINEER: 2,
+  WAREHOUSE: 2,
+  PLANNER: 2,
+  SHOP_MANAGER: 3,
+  DEPUTY_DIRECTOR: 4,
+  DIRECTOR: 5,
+}
+
+/** true khi người gọi được phép tác động lên tài khoản có vai trò mucTieu. */
+export function caoHon(nguoiGoi: Role, mucTieu: Role): boolean {
+  return CAP[nguoiGoi] > CAP[mucTieu]
 }
 
 /** Trang mặc định theo vai trò. */

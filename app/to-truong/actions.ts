@@ -17,7 +17,11 @@ export async function duyetBanGhi(formData: FormData): Promise<void> {
     where: {
       id: { in: ids },
       status: 'PENDING',
-      ...(u.role === 'TEAM_LEADER' ? { assignment: { teamId: u.teamId ?? '' } } : {}),
+      assignment: {
+        // Không ai tự duyệt sản lượng của chính mình, kể cả tổ trưởng
+        userId: { not: u.id },
+        ...(u.role === 'TEAM_LEADER' ? { teamId: u.teamId ?? '' } : {}),
+      },
     },
     select: {
       id: true,
@@ -29,10 +33,15 @@ export async function duyetBanGhi(formData: FormData): Promise<void> {
 
   await prisma.$transaction(async (tx) => {
     for (const e of entries) {
-      await tx.productionEntry.update({
-        where: { id: e.id },
+      // Chỉ cộng tiến độ khi chính lượt này là lượt đổi PENDING sang APPROVED.
+      // Bấm duyệt hai lần, hoặc hai người cùng duyệt một bản ghi, thì lượt sau
+      // đếm được 0 dòng và không cộng thêm lần nữa.
+      const doi = await tx.productionEntry.updateMany({
+        where: { id: e.id, status: 'PENDING' },
         data: { status: 'APPROVED', approvedById: u.id, approvedAt: new Date() },
       })
+      if (doi.count !== 1) continue
+
       await tx.orderOperation.update({
         where: { id: e.assignment.orderOperationId },
         data: {
@@ -65,7 +74,10 @@ export async function tuChoiBanGhi(formData: FormData): Promise<void> {
     where: {
       id,
       status: 'PENDING',
-      ...(u.role === 'TEAM_LEADER' ? { assignment: { teamId: u.teamId ?? '' } } : {}),
+      assignment: {
+        userId: { not: u.id },
+        ...(u.role === 'TEAM_LEADER' ? { teamId: u.teamId ?? '' } : {}),
+      },
     },
     data: { status: 'REJECTED', approvedById: u.id, approvedAt: new Date() },
   })

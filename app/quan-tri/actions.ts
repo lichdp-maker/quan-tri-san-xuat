@@ -3,8 +3,9 @@
 import { revalidatePath } from 'next/cache'
 import { hash } from '@node-rs/argon2'
 import { prisma } from '@/lib/prisma'
-import { batBuocDangNhap } from '@/lib/session'
+import { batBuocDangNhap, caoHon } from '@/lib/session'
 import { soPhut } from '@/lib/date'
+import { kiemTraMatKhau, sinhPin } from '@/lib/mat-khau'
 import type { Role } from '@prisma/client'
 
 const QUAN_TRI = ['SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'] as const
@@ -31,7 +32,10 @@ export async function themNguoiDung(formData: FormData): Promise<void> {
   const teamId = String(formData.get('teamId') ?? '')
   const matKhau = String(formData.get('password') ?? '').trim()
 
-  if (!employeeCode || !fullName || !VAI_TRO_HOP_LE.includes(role) || matKhau.length < 4) return
+  if (!employeeCode || !fullName || !VAI_TRO_HOP_LE.includes(role)) return
+  // Không tạo được người ngang hoặc cao cấp hơn mình
+  if (!caoHon(u.role, role)) return
+  if (!kiemTraMatKhau(matKhau, employeeCode).ok) return
   if (await prisma.user.findUnique({ where: { employeeCode } })) return
 
   const nd = await prisma.user.create({
@@ -41,6 +45,7 @@ export async function themNguoiDung(formData: FormData): Promise<void> {
       role,
       passwordHash: await hash(matKhau),
       teamId: teamId || null,
+      mustChangePassword: true,
     },
   })
 
@@ -61,7 +66,8 @@ export async function themNguoiDung(formData: FormData): Promise<void> {
  * Tạo hàng loạt bằng cách dán danh sách, mỗi dòng một người:
  *   MÃ, Họ tên, VAI_TRO, MÃ_TỔ, PIN
  * Vai trò và mã tổ để trống thì mặc định là công nhân, không thuộc tổ nào.
- * PIN để trống thì mặc định 123456 — bắt buộc đổi ở lần dùng đầu.
+ * PIN để trống, hoặc PIN quá dễ đoán, thì hệ thống sinh PIN ngẫu nhiên.
+ * Mọi tài khoản tạo ở đây đều bị bắt đổi mật khẩu ở lần đăng nhập đầu.
  */
 export async function themNhieuNguoiDung(formData: FormData): Promise<void> {
   const u = await batBuocDangNhap(...QUAN_TRI)
@@ -74,7 +80,14 @@ export async function themNhieuNguoiDung(formData: FormData): Promise<void> {
   if (dong.length === 0 || dong.length > 500) return
 
   const tos = await prisma.team.findMany()
-  const banGhi: Array<{ employeeCode: string; fullName: string; role: Role; teamId: string | null; passwordHash: string }> = []
+  const banGhi: Array<{
+    employeeCode: string
+    fullName: string
+    role: Role
+    teamId: string | null
+    passwordHash: string
+    mustChangePassword: boolean
+  }> = []
 
   for (const d of dong) {
     const [ma, ten, vaiTro, maTo, pin] = d.split(',').map((x) => (x ?? '').trim())
@@ -90,7 +103,10 @@ export async function themNhieuNguoiDung(formData: FormData): Promise<void> {
       fullName: ten,
       role,
       teamId: to?.id ?? null,
-      passwordHash: await hash(pin && pin.length >= 4 ? pin : '123456'),
+      // PIN để trống thì sinh ngẫu nhiên. Không dùng một PIN mặc định chung,
+      // vì chỉ cần lộ một lần là mở được mọi tài khoản tạo cùng đợt.
+      passwordHash: await hash(pin && kiemTraMatKhau(pin, ma).ok ? pin : sinhPin()),
+      mustChangePassword: true,
     })
   }
 
@@ -119,8 +135,17 @@ export async function suaNguoiDung(formData: FormData): Promise<void> {
   const isActive = formData.get('isActive') === 'on'
   if (!id || !VAI_TRO_HOP_LE.includes(role)) return
 
+  const mucTieu = await prisma.user.findUnique({ where: { id }, select: { role: true } })
+  if (!mucTieu) return
+
   // Không tự khoá chính mình, tránh khoá hết người quản trị
   if (id === u.id && !isActive) return
+  // Không tự nâng quyền cho chính mình
+  if (id === u.id && role !== mucTieu.role) return
+  // Chỉ sửa được người có cấp thấp hơn mình
+  if (id !== u.id && !caoHon(u.role, mucTieu.role)) return
+  // Không cấp cho ai vai trò ngang hoặc cao hơn mình
+  if (role !== mucTieu.role && !caoHon(u.role, role)) return
 
   await prisma.user.update({
     where: { id },
@@ -145,9 +170,31 @@ export async function datLaiMatKhau(formData: FormData): Promise<void> {
 
   const id = String(formData.get('id') ?? '')
   const matKhau = String(formData.get('password') ?? '').trim()
-  if (!id || matKhau.length < 4) return
+  if (!id) return
 
-  await prisma.user.update({ where: { id }, data: { passwordHash: await hash(matKhau) } })
+  const mucTieu = await prisma.user.findUnique({
+    where: { id },
+    select: { role: true, employeeCode: true },
+  })
+  if (!mucTieu) return
+  // Không đặt lại mật khẩu của người ngang hoặc cao cấp hơn mình —
+  // nếu không, quản lý xưởng chiếm được tài khoản giám đốc.
+  if (id !== u.id && !caoHon(u.role, mucTieu.role)) return
+
+  const kiem = kiemTraMatKhau(matKhau, mucTieu.employeeCode)
+  if (!kiem.ok) return
+
+  await prisma.user.update({
+    where: { id },
+    data: {
+      passwordHash: await hash(matKhau),
+      // Người được cấp lại phải tự đổi ngay, và mọi phiên cũ của họ hết hiệu lực
+      mustChangePassword: true,
+      passwordChangedAt: new Date(),
+      failedLogins: 0,
+      lockedUntil: null,
+    },
+  })
   await prisma.auditLog.create({
     data: { userId: u.id, action: 'DAT_LAI_MAT_KHAU', entityType: 'User', entityId: id },
   })

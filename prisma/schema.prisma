@@ -35,6 +35,12 @@ model User {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
 
+  // Bảo mật đăng nhập
+  mustChangePassword Boolean   @default(false) // true = bắt đổi mật khẩu trước khi làm gì khác
+  passwordChangedAt  DateTime? // phiên cấp trước mốc này bị vô hiệu
+  failedLogins       Int       @default(0)
+  lockedUntil        DateTime? // khoá tạm sau nhiều lần sai mật khẩu
+
   ledTeams        Team[]            @relation("TeamLeader")
   assignments     Assignment[]
   entriesCreated  ProductionEntry[] @relation("EntryCreatedBy")

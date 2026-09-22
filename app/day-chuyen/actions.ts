@@ -9,6 +9,16 @@ const QUAN_LY = ['TEAM_LEADER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'] a
 
 export type KetQua = { ok?: boolean; loi?: string; chu?: string }
 
+/**
+ * Tổ trưởng chỉ được thao tác trên dây chuyền của tổ mình.
+ * Trang /day-chuyen liệt kê mọi chuyền cho tổ trưởng xem, nên nếu không kiểm ở
+ * đây thì họ gửi thẳng id ghế của chuyền tổ khác và sửa được phân công tổ đó.
+ */
+function saiTo(vaiTro: string, teamId: string | null, lineTeamId: string | null): boolean {
+  if (vaiTro !== 'TEAM_LEADER') return false
+  return !teamId || lineTeamId !== teamId
+}
+
 /** Tạo dây chuyền mới kèm đủ ghế hai mặt. */
 export async function taoDayChuyen(formData: FormData): Promise<void> {
   const u = await batBuocDangNhap('SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR')
@@ -102,6 +112,9 @@ export async function datLenhChoDayChuyen(formData: FormData): Promise<void> {
   const shiftId = String(formData.get('shiftId') ?? '')
   if (!lineId) return
 
+  const line = await prisma.line.findUnique({ where: { id: lineId }, select: { teamId: true } })
+  if (!line || saiTo(u.role, u.teamId, line.teamId)) return
+
   await prisma.line.update({
     where: { id: lineId },
     data: { currentOrderId: orderId || null, shiftId: shiftId || null },
@@ -118,6 +131,15 @@ export async function datLenhChoDayChuyen(formData: FormData): Promise<void> {
 export async function ganNguyenCongChoGhe(seatId: string, operationId: string): Promise<KetQua> {
   const u = await batBuocDangNhap(...QUAN_LY)
   if (!seatId) return { loi: 'Thiếu vị trí.' }
+
+  const ghe = await prisma.seat.findUnique({
+    where: { id: seatId },
+    select: { line: { select: { teamId: true } } },
+  })
+  if (!ghe) return { loi: 'Không tìm thấy vị trí ngồi.' }
+  if (saiTo(u.role, u.teamId, ghe.line.teamId)) {
+    return { loi: 'Dây chuyền này không thuộc tổ của bạn.' }
+  }
 
   await prisma.seat.update({
     where: { id: seatId },
@@ -144,6 +166,9 @@ export async function ganNguoiVaoGhe(seatId: string, userId: string): Promise<Ke
     include: { line: true, operation: true },
   })
   if (!seat) return { loi: 'Không tìm thấy vị trí ngồi.' }
+  if (saiTo(u.role, u.teamId, seat.line.teamId)) {
+    return { loi: 'Dây chuyền này không thuộc tổ của bạn.' }
+  }
   if (!seat.operationId) return { loi: `Vị trí ${seat.side}${seat.seq} chưa gán nguyên công.` }
   if (!seat.line.currentOrderId) return { loi: 'Dây chuyền chưa chọn lệnh sản xuất đang chạy.' }
   if (!seat.line.shiftId) return { loi: 'Dây chuyền chưa chọn ca làm việc.' }
@@ -217,6 +242,15 @@ export async function ganNguoiVaoGhe(seatId: string, userId: string): Promise<Ke
 export async function goNguoiKhoiGhe(seatId: string): Promise<KetQua> {
   const u = await batBuocDangNhap(...QUAN_LY)
   const workDate = ngayLamViec(ngayHomNay())
+
+  const ghe = await prisma.seat.findUnique({
+    where: { id: seatId },
+    select: { line: { select: { teamId: true } } },
+  })
+  if (!ghe) return { loi: 'Không tìm thấy vị trí ngồi.' }
+  if (saiTo(u.role, u.teamId, ghe.line.teamId)) {
+    return { loi: 'Dây chuyền này không thuộc tổ của bạn.' }
+  }
 
   const pc = await prisma.assignment.findFirst({
     where: { seatId, workDate },

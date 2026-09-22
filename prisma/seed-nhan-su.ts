@@ -54,6 +54,8 @@ async function main() {
           role: p.vaiTro as Role,
           teamId,
           passwordHash: await hash(PIN_MAC_DINH),
+          // Bắt đổi ngay lần đăng nhập đầu — PIN cấp sẵn chỉ dùng được một lần
+          mustChangePassword: true,
         },
       })
       moi++

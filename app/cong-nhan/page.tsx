@@ -7,9 +7,13 @@ import ManHinhNhap from './ManHinhNhap'
 
 export const dynamic = 'force-dynamic'
 
+const DUOC_VAO = ['WORKER', 'TEAM_LEADER']
+
 export default async function TrangCongNhan() {
   const u = await nguoiDangDangNhap()
   if (!u) redirect('/dang-nhap')
+  if (u.phaiDoiMatKhau) redirect('/doi-mat-khau')
+  if (!DUOC_VAO.includes(u.role)) redirect('/')
 
   const ymd = ngayHomNay()
   const workDate = ngayLamViec(ymd)

@@ -177,6 +177,7 @@ async function seedUsers() {
         fullName,
         role,
         passwordHash,
+        mustChangePassword: true,
         teamId: role === Role.WORKER || role === Role.TEAM_LEADER ? team.id : null,
       },
     })

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { batBuocDangNhap } from '@/lib/session'
-import { ngayHomNay, ngayLamViec, mocThoiGian, soPhut } from '@/lib/date'
+import { ngayHomNay, ngayLamViec, mocThoiGian, soPhut, gioHienTai } from '@/lib/date'
 import { calcEntry, validateSlotAllocation } from '@/lib/productivity'
 
 const Dong = z.object({
@@ -37,6 +37,12 @@ export async function luuSanLuong(duLieuJson: string): Promise<KetQuaLuu> {
 
   const slot = await prisma.timeSlot.findUnique({ where: { id: timeSlotId } })
   if (!slot || !slot.isActive) return { loi: 'Mốc giờ không tồn tại.' }
+
+  // Không nhập trước cho mốc giờ chưa tới — nếu không thì cảnh báo "chưa nhập"
+  // của tổ trưởng mất tác dụng và sản lượng cả ngày khai được từ sáng sớm.
+  if (gioHienTai() < slot.startTime) {
+    return { loi: `Mốc ${slot.label} chưa bắt đầu (${slot.startTime}). Chưa nhập được.` }
+  }
 
   const doDaiMoc = soPhut(slot.startTime, slot.endTime, slot.breakMinutes)
 
@@ -106,16 +112,32 @@ export async function luuSanLuong(duLieuJson: string): Promise<KetQuaLuu> {
         select: { qtyOk: true, qtyDefect: true, status: true },
       })
 
-      // Sửa một bản ghi ĐÃ DUYỆT thì phải trừ lại phần đã cộng vào tiến độ lệnh,
-      // nếu không tiến độ sẽ bị đếm hai lần.
+      // Bản ghi đã duyệt là số đã chốt: công nhân không tự viết đè được nữa,
+      // phải nhờ tổ trưởng từ chối trước. Nếu không thì số đã lên báo cáo
+      // vẫn bị sửa sau lưng người duyệt.
+      if (cu?.status === 'APPROVED' && u.role === 'WORKER') {
+        throw new Error(
+          `"${op.name}" đã được duyệt. Muốn sửa thì báo tổ trưởng từ chối bản ghi trước.`,
+        )
+      }
+
+      // Quản lý sửa bản ghi ĐÃ DUYỆT thì phải trừ lại phần đã cộng vào tiến độ,
+      // nếu không tiến độ bị đếm hai lần. Chỉ trừ khi chính lượt này là lượt
+      // đổi APPROVED sang PENDING — hai lượt lưu cùng lúc sẽ không trừ hai lần.
       if (cu?.status === 'APPROVED') {
-        await tx.orderOperation.update({
-          where: { id: oo.id },
-          data: {
-            doneQtyOk: { decrement: cu.qtyOk },
-            doneQtyDefect: { decrement: cu.qtyDefect },
-          },
+        const doi = await tx.productionEntry.updateMany({
+          where: { assignmentId: d.assignmentId, timeSlotId, workDate, status: 'APPROVED' },
+          data: { status: 'PENDING', approvedById: null, approvedAt: null },
         })
+        if (doi.count === 1) {
+          await tx.orderOperation.update({
+            where: { id: oo.id },
+            data: {
+              doneQtyOk: { decrement: cu.qtyOk },
+              doneQtyDefect: { decrement: cu.qtyDefect },
+            },
+          })
+        }
       }
       const sauKhiLuu = daCo - (cu?.qtyOk ?? 0) + d.qtyOk
       if (sauKhiLuu > oo.targetQty) {
