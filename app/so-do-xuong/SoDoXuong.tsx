@@ -6,6 +6,15 @@ import { doiViTriChuyen } from '../day-chuyen/actions'
 
 type Loai = 'CHUYEN' | 'BAN' | 'MAY'
 
+type Ghe = {
+  id: string
+  mat: 'A' | 'B'
+  so: number
+  coNguyenCong: boolean
+  tenNguyenCong: string | null
+  nguoi: string | null
+}
+
 type ViTri = {
   id: string
   ma: string
@@ -15,18 +24,16 @@ type ViTri = {
   x: number
   y: number
   rong: number
-  cao: number
-  soGhe: number
   soNguyenCong: number
-  daXep: number
   to: string | null
   lenh: string | null
+  ghe: Ghe[]
 }
 
 const MAU: Record<Loai, { vien: string; nen: string; chu: string }> = {
-  CHUYEN: { vien: 'border-brand-400', nen: 'bg-brand-50', chu: 'text-brand-900' },
-  BAN: { vien: 'border-emerald-400', nen: 'bg-emerald-50', chu: 'text-emerald-900' },
-  MAY: { vien: 'border-slate-400', nen: 'bg-slate-100', chu: 'text-slate-700' },
+  CHUYEN: { vien: 'border-brand-400', nen: 'bg-brand-50/80', chu: 'text-brand-900' },
+  BAN: { vien: 'border-violet-400', nen: 'bg-violet-50/80', chu: 'text-violet-900' },
+  MAY: { vien: 'border-slate-400', nen: 'bg-slate-100/90', chu: 'text-slate-700' },
 }
 
 const TEN_LOAI: Record<Loai, string> = {
@@ -60,7 +67,6 @@ export default function SoDoXuong({
         viTriX: v.x,
         viTriY: v.y,
         rong: v.rong,
-        cao: v.cao,
       })
       setBao(kq.loi ?? `Đã lưu vị trí ${v.ten}`)
     })
@@ -72,7 +78,7 @@ export default function SoDoXuong({
         <p className="text-sm text-slate-600">
           {sapXep
             ? 'Kéo khối để đặt lại vị trí. Thả ra là lưu.'
-            : 'Bấm vào một vị trí để vào trang xếp chỗ và gán nguyên công cho chuyền đó.'}
+            : 'Ô xanh là chỗ đã có người hôm nay. Bấm vào một vị trí để vào trang xếp chỗ.'}
         </p>
         {duocSapXep && (
           <button
@@ -86,51 +92,69 @@ export default function SoDoXuong({
 
       {bao && <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{bao}</p>}
 
-      {cacTang.length === 0 ? (
-        <p className="the text-sm text-slate-600">
-          Chưa có dây chuyền nào. Vào <strong>Sơ đồ dây chuyền</strong> bấm “+ Thêm chuyền”.
-        </p>
-      ) : (
-        cacTang.map((tang) => (
-          <KhungTang
-            key={tang}
-            tang={tang}
-            viTris={cho.filter((v) => v.tang === tang)}
-            sapXep={sapXep && duocSapXep}
-            dangChay={dangChay}
-            keo={(id, x, y) =>
-              setCho((ds) => ds.map((v) => (v.id === id ? { ...v, x, y } : v)))
-            }
-            thaRa={(id) => {
-              const v = cho.find((c) => c.id === id)
-              if (v) luuViTri(v)
-            }}
-            moChuyen={(id) => router.push(`/day-chuyen?dc=${id}`)}
-            doiTang={(id, tangMoi) => {
-              const v = cho.find((c) => c.id === id)
-              if (!v) return
-              const moi = { ...v, tang: tangMoi, y: 40 }
-              setCho((ds) => ds.map((c) => (c.id === id ? moi : c)))
-              luuViTri(moi)
-            }}
-          />
-        ))
-      )}
+      {cacTang.map((tang) => (
+        <KhungTang
+          key={tang}
+          tang={tang}
+          viTris={cho.filter((v) => v.tang === tang)}
+          sapXep={sapXep && duocSapXep}
+          dangChay={dangChay}
+          keo={(id, x, y) => setCho((ds) => ds.map((v) => (v.id === id ? { ...v, x, y } : v)))}
+          thaRa={(id) => {
+            const v = cho.find((c) => c.id === id)
+            if (v) luuViTri(v)
+          }}
+          moChuyen={(id) => router.push(`/day-chuyen?dc=${id}`)}
+          doiTang={(id, tangMoi) => {
+            const v = cho.find((c) => c.id === id)
+            if (!v) return
+            const moi = { ...v, tang: tangMoi, y: 40 }
+            setCho((ds) => ds.map((c) => (c.id === id ? moi : c)))
+            luuViTri(moi)
+          }}
+        />
+      ))}
 
-      <div className="flex flex-wrap gap-4 px-1 text-xs text-slate-500">
+      <div className="flex flex-wrap gap-x-4 gap-y-2 px-1 text-xs text-slate-500">
+        <span className="flex items-center gap-1.5">
+          <span className="h-3.5 w-3.5 rounded bg-emerald-500" />
+          có người hôm nay
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-3.5 w-3.5 rounded border border-dashed border-slate-400 bg-white" />
+          chỗ trống
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-3.5 w-3.5 rounded border border-dashed border-amber-400 bg-amber-100" />
+          chưa gán nguyên công
+        </span>
+        <span className="text-slate-300">|</span>
         {(Object.keys(TEN_LOAI) as Loai[]).map((l) => (
           <span key={l} className="flex items-center gap-1.5">
             <span className={`h-3 w-5 rounded border-2 ${MAU[l].vien} ${MAU[l].nen}`} />
             {TEN_LOAI[l]}
           </span>
         ))}
-        <span className="flex items-center gap-1.5">
-          <span className="h-3 w-5 rounded bg-emerald-500" />
-          tỷ lệ chỗ đã có người hôm nay
-        </span>
       </div>
     </div>
   )
+}
+
+/** Một ô ghế nhỏ trên mặt bằng. Xanh = có người, vàng = chưa gán nguyên công. */
+function OGhe({ g }: { g: Ghe }) {
+  const mau = g.nguoi
+    ? 'bg-emerald-500 border-emerald-600'
+    : g.coNguyenCong
+      ? 'border-dashed border-slate-400 bg-white'
+      : 'border-dashed border-amber-400 bg-amber-100'
+
+  const chu = g.nguoi
+    ? `${g.mat}${g.so} · ${g.nguoi}${g.tenNguyenCong ? ` · ${g.tenNguyenCong}` : ''}`
+    : g.coNguyenCong
+      ? `${g.mat}${g.so} · trống · ${g.tenNguyenCong}`
+      : `${g.mat}${g.so} · chưa gán nguyên công`
+
+  return <span title={chu} className={`h-3 w-3 shrink-0 rounded-[3px] border ${mau}`} />
 }
 
 function KhungTang({
@@ -155,8 +179,8 @@ function KhungTang({
   const khungRef = useRef<HTMLDivElement>(null)
   const dangKeo = useRef<{ id: string; lechX: number; lechY: number } | null>(null)
 
-  const tongGhe = viTris.reduce((a, v) => a + v.soGhe, 0)
-  const tongXep = viTris.reduce((a, v) => a + v.daXep, 0)
+  const tongGhe = viTris.reduce((a, v) => a + v.ghe.length, 0)
+  const tongXep = viTris.reduce((a, v) => a + v.ghe.filter((g) => g.nguoi).length, 0)
 
   /** Đổi toạ độ con trỏ sang phần trăm khung, để sơ đồ co giãn theo màn hình. */
   function phanTram(e: { clientX: number; clientY: number }) {
@@ -198,7 +222,7 @@ function KhungTang({
             dangKeo.current = null
           }
         }}
-        className="relative h-[26rem] w-full overflow-hidden rounded-2xl border-2 border-slate-300 bg-[linear-gradient(to_right,rgba(148,163,184,.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,.18)_1px,transparent_1px)] bg-[size:2rem_2rem] sm:h-[30rem]"
+        className="relative h-[30rem] w-full overflow-auto rounded-2xl border-2 border-slate-300 bg-[linear-gradient(to_right,rgba(148,163,184,.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,.18)_1px,transparent_1px)] bg-[size:2rem_2rem] sm:h-[34rem]"
       >
         {viTris.length === 0 && (
           <p className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-slate-400">
@@ -211,7 +235,9 @@ function KhungTang({
 
         {viTris.map((v) => {
           const mau = MAU[v.loai]
-          const tyLe = v.soGhe > 0 ? Math.round((v.daXep / v.soGhe) * 100) : 0
+          const matA = v.ghe.filter((g) => g.mat === 'A')
+          const matB = v.ghe.filter((g) => g.mat === 'B')
+          const daXep = v.ghe.filter((g) => g.nguoi).length
 
           return (
             <button
@@ -227,28 +253,57 @@ function KhungTang({
                 if (!sapXep) moChuyen(v.id)
               }}
               disabled={dangChay && sapXep}
-              style={{
-                left: `${v.x}%`,
-                top: `${v.y}%`,
-                width: `${v.rong}%`,
-                height: `${v.cao}%`,
-              }}
+              style={{ left: `${v.x}%`, top: `${v.y}%`, width: `${v.rong}%` }}
               className={[
-                'absolute flex flex-col justify-center overflow-hidden rounded-lg border-2 px-2 text-left transition',
+                'absolute flex flex-col gap-1 rounded-lg border-2 px-2 py-1.5 text-left transition',
                 mau.vien,
                 mau.nen,
-                sapXep ? 'cursor-move touch-none' : 'cursor-pointer hover:brightness-95 hover:shadow-md',
+                sapXep
+                  ? 'cursor-move touch-none ring-2 ring-brand-200'
+                  : 'cursor-pointer hover:shadow-md hover:brightness-[0.97]',
               ].join(' ')}
               title={v.lenh ?? 'Chưa chọn lệnh sản xuất'}
             >
-              <span className={`truncate text-xs font-semibold leading-tight ${mau.chu}`}>
-                {v.ten}
+              <span className="flex items-baseline justify-between gap-2">
+                <span className={`truncate text-xs font-semibold leading-tight ${mau.chu}`}>
+                  {v.ten}
+                </span>
+                <span className="shrink-0 text-[10px] tabular-nums text-slate-500">
+                  {v.loai === 'MAY' ? TEN_LOAI[v.loai] : `${daXep}/${v.ghe.length}`}
+                </span>
               </span>
-              <span className="truncate text-[10px] leading-tight text-slate-500">
-                {v.loai === 'MAY'
-                  ? TEN_LOAI[v.loai]
-                  : `${v.daXep}/${v.soGhe} chỗ${v.soNguyenCong > 0 ? ` · ${v.soNguyenCong} NC` : ''}`}
-              </span>
+
+              {v.lenh && (
+                <span className="truncate rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium leading-tight text-amber-900">
+                  {v.lenh}
+                </span>
+              )}
+
+              {/* Băng chuyền: hai mặt kẹp băng tải ở giữa, đúng như sơ đồ chỗ ngồi */}
+              {v.loai === 'CHUYEN' && v.ghe.length > 0 && (
+                <span className="flex flex-col gap-[3px]">
+                  <span className="flex flex-wrap gap-[3px]">
+                    {matA.map((g) => (
+                      <OGhe key={g.id} g={g} />
+                    ))}
+                  </span>
+                  <span className="my-[1px] h-[3px] rounded-full bg-slate-300" />
+                  <span className="flex flex-wrap gap-[3px]">
+                    {matB.map((g) => (
+                      <OGhe key={g.id} g={g} />
+                    ))}
+                  </span>
+                </span>
+              )}
+
+              {/* Dãy bàn: một hàng */}
+              {v.loai === 'BAN' && v.ghe.length > 0 && (
+                <span className="flex flex-wrap gap-[3px]">
+                  {v.ghe.map((g) => (
+                    <OGhe key={g.id} g={g} />
+                  ))}
+                </span>
+              )}
 
               {sapXep && (
                 <span
@@ -260,18 +315,9 @@ function KhungTang({
                     e.stopPropagation()
                     doiTang(v.id, v.tang === 1 ? 2 : 1)
                   }}
-                  className="absolute right-1 top-1 rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 shadow-sm hover:bg-white hover:text-brand-700"
+                  className="absolute right-1 top-1 rounded bg-white/95 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 shadow-sm hover:text-brand-700"
                 >
                   {v.tang === 1 ? '↑ Tầng 2' : '↓ Tầng 1'}
-                </span>
-              )}
-
-              {v.loai !== 'MAY' && v.soGhe > 0 && (
-                <span className="absolute inset-x-0 bottom-0 h-1 bg-slate-200">
-                  <span
-                    className="block h-full bg-emerald-500 transition-all"
-                    style={{ width: `${tyLe}%` }}
-                  />
                 </span>
               )}
             </button>
