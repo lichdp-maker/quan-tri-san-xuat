@@ -14,6 +14,7 @@ import {
   IconChiaKhoa,
   IconDauTich,
   IconSoDo,
+  IconDongChay,
 } from './Icons'
 
 type Muc = { ten: string; href: string; icon: React.ReactNode; vaiTro: Role[] }
@@ -68,6 +69,12 @@ const NHOM: Nhom[] = [
   {
     nhan: 'Kỹ thuật',
     muc: [
+      {
+        ten: 'Sơ đồ dòng chảy',
+        href: '/dong-chay',
+        icon: <IconDongChay className="h-5 w-5" />,
+        vaiTro: ['ENGINEER', 'PLANNER', 'TEAM_LEADER', ...QUAN_LY],
+      },
       {
         ten: 'Định mức · Phiếu lỗi',
         href: '/ky-thuat',

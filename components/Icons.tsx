@@ -104,6 +104,18 @@ export function IconSoDo({ className = 'h-6 w-6' }: P) {
   )
 }
 
+export function IconDongChay({ className = 'h-6 w-6' }: P) {
+  return (
+    <svg {...chung} className={className}>
+      <rect x="3" y="3.5" width="7" height="4.5" rx="1.2" />
+      <rect x="14" y="9.75" width="7" height="4.5" rx="1.2" />
+      <rect x="3" y="16" width="7" height="4.5" rx="1.2" />
+      <path d="M10 5.75h2.5a1.5 1.5 0 0 1 1.5 1.5v2.5" />
+      <path d="M14 14.25v2a1.5 1.5 0 0 1-1.5 1.5H10" />
+    </svg>
+  )
+}
+
 export function IconMuiTenPhai({ className = 'h-5 w-5' }: P) {
   return (
     <svg {...chung} className={className}>
