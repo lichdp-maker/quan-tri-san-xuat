@@ -14,34 +14,95 @@ export type KetQua = { ok?: boolean; loi?: string; chu?: string }
 // mọi chuyền cho tổ trưởng xem, nên nếu không kiểm ở đây thì họ gửi thẳng id ghế
 // của chuyền tổ khác và sửa được phân công của tổ đó.
 
-/** Tạo dây chuyền mới kèm đủ ghế hai mặt. */
-export async function taoDayChuyen(formData: FormData): Promise<void> {
+/**
+ * Tạo dây chuyền mới kèm đủ ghế.
+ *
+ * Trả về lỗi thay vì im lặng bỏ qua: trùng mã hay số ghế sai mà không báo gì thì
+ * người dùng bấm xong không thấy chuyền đâu, tưởng hệ thống hỏng.
+ */
+export async function taoDayChuyen(input: {
+  code: string
+  name: string
+  soGhe: number
+  teamId?: string
+  loai?: 'CHUYEN' | 'BAN' | 'MAY'
+  tang?: number
+}): Promise<KetQua> {
   const u = await batBuocDangNhap('SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR')
 
-  const code = String(formData.get('code') ?? '').trim().toUpperCase()
-  const name = String(formData.get('name') ?? '').trim()
-  const soGhe = Number(String(formData.get('soGhe') ?? '20'))
-  const teamId = String(formData.get('teamId') ?? '')
-  if (!code || !name || !Number.isFinite(soGhe) || soGhe < 2 || soGhe > 60) return
-  if (await prisma.line.findUnique({ where: { code } })) return
+  const code = input.code.trim().toUpperCase()
+  const name = input.name.trim()
+  const soGhe = Math.round(Number(input.soGhe))
+  const loai = input.loai ?? 'CHUYEN'
+  const tang = input.tang ?? 2
+
+  if (!code) return { loi: 'Chưa nhập mã chuyền.' }
+  if (!name) return { loi: 'Chưa nhập tên chuyền.' }
+  if (!Number.isFinite(soGhe) || soGhe < 1 || soGhe > 60) {
+    return { loi: 'Số ghế phải từ 1 đến 60.' }
+  }
+
+  const trungMa = await prisma.line.findUnique({ where: { code } })
+  if (trungMa) {
+    return {
+      loi: trungMa.isActive
+        ? `Mã ${code} đã dùng cho chuyền "${trungMa.name}". Đặt mã khác.`
+        : `Mã ${code} thuộc chuyền "${trungMa.name}" đang ngừng dùng. Bật lại "Còn dùng" ở mục Sửa chuyền thay vì tạo mới.`,
+    }
+  }
+
+  // Xếp chuyền mới xuống dưới những chuyền đã có trên cùng tầng, để không
+  // chồng lên nhau ở góc trên trái của sơ đồ mặt bằng.
+  const cungTang = await prisma.line.findMany({
+    where: { tang, isActive: true },
+    select: { viTriY: true, cao: true },
+  })
+  const duoiCung = cungTang.reduce((m, l) => Math.max(m, l.viTriY + l.cao), 0)
+  const viTriY = Math.min(duoiCung + 3, 85)
 
   const moiMat = Math.ceil(soGhe / 2)
 
-  await prisma.$transaction(async (tx) => {
-    const line = await tx.line.create({
-      data: { code, name, soGhe, teamId: teamId || null },
+  const line = await prisma.$transaction(async (tx) => {
+    const l = await tx.line.create({
+      data: {
+        code,
+        name,
+        soGhe,
+        loai,
+        tang,
+        viTriY,
+        viTriX: 4,
+        rong: loai === 'MAY' ? 12 : 55,
+        cao: 10,
+        teamId: input.teamId || null,
+      },
     })
+
+    // Máy và dãy bàn xếp một hàng; băng chuyền chia đều hai mặt.
     const ghe: Array<{ lineId: string; seq: number; side: 'A' | 'B' }> = []
-    for (let i = 1; i <= moiMat; i++) ghe.push({ lineId: line.id, seq: i, side: 'A' })
-    for (let i = 1; i <= soGhe - moiMat; i++) ghe.push({ lineId: line.id, seq: i, side: 'B' })
+    if (loai === 'CHUYEN') {
+      for (let i = 1; i <= moiMat; i++) ghe.push({ lineId: l.id, seq: i, side: 'A' })
+      for (let i = 1; i <= soGhe - moiMat; i++) ghe.push({ lineId: l.id, seq: i, side: 'B' })
+    } else {
+      for (let i = 1; i <= soGhe; i++) ghe.push({ lineId: l.id, seq: i, side: 'A' })
+    }
     await tx.seat.createMany({ data: ghe })
 
     await tx.auditLog.create({
-      data: { userId: u.id, action: 'TAO_DAY_CHUYEN', entityType: 'Line', entityId: line.id, after: { code, soGhe } },
+      data: {
+        userId: u.id,
+        action: 'TAO_DAY_CHUYEN',
+        entityType: 'Line',
+        entityId: l.id,
+        after: { code, name, soGhe, loai, tang },
+      },
     })
+    return l
   })
 
   revalidatePath('/day-chuyen')
+  revalidatePath('/so-do-xuong')
+  return { ok: true, chu: line.id }
 }
 
 /**
@@ -56,12 +117,16 @@ export async function doiDayChuyen(formData: FormData): Promise<void> {
   const soGhe = Number(String(formData.get('soGhe') ?? '0'))
   const teamId = String(formData.get('teamId') ?? '')
   const conDung = String(formData.get('conDung') ?? '') === 'co'
-  if (!lineId || !name || !Number.isFinite(soGhe) || soGhe < 2 || soGhe > 60) return
+  const loaiThu = String(formData.get('loai') ?? '')
+  const loai = ['CHUYEN', 'BAN', 'MAY'].includes(loaiThu)
+    ? (loaiThu as 'CHUYEN' | 'BAN' | 'MAY')
+    : undefined
+  if (!lineId || !name || !Number.isFinite(soGhe) || soGhe < 1 || soGhe > 60) return
 
   await prisma.$transaction(async (tx) => {
     await tx.line.update({
       where: { id: lineId },
-      data: { name, soGhe, teamId: teamId || null, isActive: conDung },
+      data: { name, soGhe, teamId: teamId || null, isActive: conDung, ...(loai ? { loai } : {}) },
     })
 
     const ghe = await tx.seat.findMany({ where: { lineId }, select: { id: true, side: true, seq: true } })
@@ -90,12 +155,13 @@ export async function doiDayChuyen(formData: FormData): Promise<void> {
         action: 'SUA_DAY_CHUYEN',
         entityType: 'Line',
         entityId: lineId,
-        after: { name, soGhe, isActive: conDung },
+        after: { name, soGhe, isActive: conDung, loai },
       },
     })
   })
 
   revalidatePath('/day-chuyen')
+  revalidatePath('/so-do-xuong')
 }
 
 /** Chọn lệnh sản xuất đang chạy trên dây chuyền và ca làm việc. */

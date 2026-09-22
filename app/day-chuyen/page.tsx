@@ -169,7 +169,11 @@ export default async function TrangDayChuyen({
           </div>
 
           {line && (
-            <form action={datLenhChoDayChuyen} className="the mb-5 flex flex-wrap items-end gap-3">
+            <form
+              key={`lenh-${line.id}`}
+              action={datLenhChoDayChuyen}
+              className="the mb-5 flex flex-wrap items-end gap-3"
+            >
               <input type="hidden" name="lineId" value={line.id} />
               <label className="flex flex-1 flex-col gap-1">
                 <span className="text-xs text-slate-600">Lệnh đang chạy trên dây chuyền</span>
@@ -217,7 +221,11 @@ export default async function TrangDayChuyen({
               <summary className="cursor-pointer text-sm font-medium text-slate-700">
                 Sửa chuyền {line.name} — đổi tên, số ghế, tổ phụ trách
               </summary>
-              <form action={doiDayChuyen} className="mt-3 flex flex-wrap items-end gap-3">
+              <form
+                key={`sua-${line.id}`}
+                action={doiDayChuyen}
+                className="mt-3 flex flex-wrap items-end gap-3"
+              >
                 <input type="hidden" name="lineId" value={line.id} />
                 <label className="flex min-w-48 flex-1 flex-col gap-1">
                   <span className="text-xs text-slate-600">Tên dây chuyền</span>
@@ -241,6 +249,14 @@ export default async function TrangDayChuyen({
                         {t.name}
                       </option>
                     ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-slate-600">Kiểu vị trí</span>
+                  <select name="loai" defaultValue={line.loai} className="o-chon w-36">
+                    <option value="CHUYEN">Băng chuyền</option>
+                    <option value="BAN">Dãy bàn</option>
+                    <option value="MAY">Máy</option>
                   </select>
                 </label>
                 <label className="flex items-center gap-2 pb-2 text-sm text-slate-600">
