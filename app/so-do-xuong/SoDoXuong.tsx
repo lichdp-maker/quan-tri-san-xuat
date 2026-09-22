@@ -48,7 +48,9 @@ export default function SoDoXuong({
   const [cho, setCho] = useState<ViTri[]>(viTris)
   const [bao, setBao] = useState<string | null>(null)
 
-  const cacTang = [...new Set(cho.map((v) => v.tang))].sort((a, b) => b - a)
+  // Luôn vẽ tầng 1 và tầng 2 dù tầng đó chưa có chuyền nào, để còn chỗ mà kéo
+  // chuyền xuống. Tầng khác chỉ hiện khi thực sự có chuyền.
+  const cacTang = [...new Set([2, 1, ...cho.map((v) => v.tang)])].sort((a, b) => b - a)
 
   function luuViTri(v: ViTri) {
     batDau(async () => {
@@ -104,6 +106,13 @@ export default function SoDoXuong({
               if (v) luuViTri(v)
             }}
             moChuyen={(id) => router.push(`/day-chuyen?dc=${id}`)}
+            doiTang={(id, tangMoi) => {
+              const v = cho.find((c) => c.id === id)
+              if (!v) return
+              const moi = { ...v, tang: tangMoi, y: 40 }
+              setCho((ds) => ds.map((c) => (c.id === id ? moi : c)))
+              luuViTri(moi)
+            }}
           />
         ))
       )}
@@ -132,6 +141,7 @@ function KhungTang({
   keo,
   thaRa,
   moChuyen,
+  doiTang,
 }: {
   tang: number
   viTris: ViTri[]
@@ -140,6 +150,7 @@ function KhungTang({
   keo: (id: string, x: number, y: number) => void
   thaRa: (id: string) => void
   moChuyen: (id: string) => void
+  doiTang: (id: string, tangMoi: number) => void
 }) {
   const khungRef = useRef<HTMLDivElement>(null)
   const dangKeo = useRef<{ id: string; lechX: number; lechY: number } | null>(null)
@@ -190,8 +201,11 @@ function KhungTang({
         className="relative h-[26rem] w-full overflow-hidden rounded-2xl border-2 border-slate-300 bg-[linear-gradient(to_right,rgba(148,163,184,.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,.18)_1px,transparent_1px)] bg-[size:2rem_2rem] sm:h-[30rem]"
       >
         {viTris.length === 0 && (
-          <p className="absolute inset-0 flex items-center justify-center text-sm text-slate-400">
-            Tầng này chưa có vị trí sản xuất nào
+          <p className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-slate-400">
+            Tầng này chưa có vị trí sản xuất nào.
+            {sapXep
+              ? ' Bấm nút chuyển tầng trên một khối ở tầng kia để đưa xuống đây.'
+              : ' Bấm “Sắp xếp mặt bằng” rồi dùng nút chuyển tầng trên từng khối.'}
           </p>
         )}
 
@@ -235,6 +249,22 @@ function KhungTang({
                   ? TEN_LOAI[v.loai]
                   : `${v.daXep}/${v.soGhe} chỗ${v.soNguyenCong > 0 ? ` · ${v.soNguyenCong} NC` : ''}`}
               </span>
+
+              {sapXep && (
+                <span
+                  role="button"
+                  tabIndex={-1}
+                  title={v.tang === 1 ? 'Đưa lên tầng 2' : 'Đưa xuống tầng 1'}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    doiTang(v.id, v.tang === 1 ? 2 : 1)
+                  }}
+                  className="absolute right-1 top-1 rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 shadow-sm hover:bg-white hover:text-brand-700"
+                >
+                  {v.tang === 1 ? '↑ Tầng 2' : '↓ Tầng 1'}
+                </span>
+              )}
 
               {v.loai !== 'MAY' && v.soGhe > 0 && (
                 <span className="absolute inset-x-0 bottom-0 h-1 bg-slate-200">
