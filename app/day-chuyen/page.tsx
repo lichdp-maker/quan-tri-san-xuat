@@ -7,6 +7,7 @@ import { Header } from '@/components/Header'
 import { datLenhChoDayChuyen, doiDayChuyen } from './actions'
 import SoDoDayChuyen from './SoDoDayChuyen'
 import ThemDayChuyen from './ThemDayChuyen'
+import NguyenCongCuaChuyen from './NguyenCongCuaChuyen'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,6 +26,7 @@ export default async function TrangDayChuyen({
   const ymd = ngayHomNay()
   const workDate = ngayLamViec(ymd)
   const locTo = u.role === 'TEAM_LEADER' ? { teamId: u.teamId ?? '' } : {}
+  const laQuanLy = u.role !== 'TEAM_LEADER'
 
   const [lines, tos, cas, lenhs] = await Promise.all([
     prisma.line.findMany({
@@ -70,6 +72,24 @@ export default async function TrangDayChuyen({
       })
     : []
 
+  // Nguyên công chuyền này đảm nhận. Rỗng = chuyền chưa giới hạn, làm mọi nguyên công của lệnh.
+  const ncCuaChuyen = line
+    ? await prisma.lineOperation.findMany({
+        where: { lineId: line.id },
+        select: { operationId: true },
+      })
+    : []
+  const boLoc = new Set(ncCuaChuyen.map((x) => x.operationId))
+
+  // Toàn bộ nguyên công còn dùng, để chọn danh sách cho chuyền
+  const moiNguyenCong = laQuanLy
+    ? await prisma.operation.findMany({
+        where: { isActive: true },
+        include: { section: { include: { product: true } } },
+        orderBy: [{ section: { seq: 'asc' } }, { seq: 'asc' }],
+      })
+    : []
+
   // Tổ trưởng chỉ thấy người trong tổ mình; quản lý thấy toàn bộ công nhân đang làm việc
   const congNhan = await prisma.user.findMany({
     where: { isActive: true, role: { in: ['WORKER', 'TEAM_LEADER'] }, ...locTo },
@@ -97,8 +117,6 @@ export default async function TrangDayChuyen({
     demTheoChuyen.set(x.seat!.lineId, (demTheoChuyen.get(x.seat!.lineId) ?? 0) + 1)
   }
 
-  const laQuanLy = u.role !== 'TEAM_LEADER'
-
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-5">
       <Header
@@ -106,9 +124,14 @@ export default async function TrangDayChuyen({
         phu={`${u.fullName} · ${TEN_VAI_TRO[u.role]} · ${dinhDangNgay(ymd)}`}
         nguoiDung={u}
         them={
-          <Link href="/to-truong" className="nut-phu">
-            Chốt số
-          </Link>
+          <>
+            <Link href="/so-do-xuong" className="nut-phu">
+              Mặt bằng xưởng
+            </Link>
+            <Link href="/to-truong" className="nut-phu">
+              Chốt số
+            </Link>
+          </>
         }
       />
 
@@ -170,6 +193,23 @@ export default async function TrangDayChuyen({
               </label>
               <button className="nut-nho">Lưu</button>
             </form>
+          )}
+
+          {line && (
+            <NguyenCongCuaChuyen
+              lineId={line.id}
+              tenChuyen={line.name}
+              duocSua={laQuanLy}
+              dangChon={[...boLoc]}
+              tatCa={moiNguyenCong.map((o) => ({
+                id: o.id,
+                ma: o.code,
+                ten: o.name,
+                giay: o.standardSeconds,
+                sanPham: o.section.product.name,
+                boPhan: o.section.name,
+              }))}
+            />
           )}
 
           {line && laQuanLy && (
@@ -266,13 +306,15 @@ export default async function TrangDayChuyen({
                 dangO: dangNgoi.get(c.id) ?? [],
               }))}
               tenChuyenNay={line.name}
-              nguyenCongs={nguyenCongs.map((oo) => ({
+              nguyenCongs={nguyenCongs
+                .filter((oo) => boLoc.size === 0 || boLoc.has(oo.operationId))
+                .map((oo) => ({
                 id: oo.operationId,
                 ten: oo.operation.name,
                 boPhan: oo.operation.section.name,
                 giay: oo.standardSeconds,
                 conLai: oo.targetQty - oo.doneQtyOk,
-              }))}
+                }))}
             />
           )}
         </>

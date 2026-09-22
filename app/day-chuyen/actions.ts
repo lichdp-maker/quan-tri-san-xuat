@@ -262,3 +262,92 @@ export async function goNguoiKhoiGhe(seatId: string): Promise<KetQua> {
   revalidatePath('/day-chuyen')
   return { ok: true }
 }
+
+/**
+ * Chọn những nguyên công mà chuyền này đảm nhận.
+ *
+ * Mỗi chuyền chỉ làm một phần công đoạn: chuyền lắp ráp làm phần lắp, bàn đầu
+ * kiểm làm phần kiểm, chuyền bao gói làm phần bao gói. Danh sách này lọc lại ô
+ * chọn nguyên công của từng ghế, để tổ trưởng không phải lội qua 83 nguyên công
+ * mới tìm ra 6 cái thuộc chuyền mình.
+ *
+ * Để trống danh sách = chuyền làm mọi nguyên công của lệnh đang chạy.
+ */
+export async function datNguyenCongChoChuyen(
+  lineId: string,
+  operationIds: string[],
+): Promise<KetQua> {
+  const u = await batBuocDangNhap('ENGINEER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR')
+  if (!lineId) return { loi: 'Thiếu dây chuyền.' }
+
+  const line = await prisma.line.findUnique({ where: { id: lineId }, select: { id: true } })
+  if (!line) return { loi: 'Không tìm thấy dây chuyền.' }
+
+  // Chỉ nhận id nguyên công có thật và còn dùng
+  const hopLe = await prisma.operation.findMany({
+    where: { id: { in: operationIds }, isActive: true },
+    select: { id: true },
+  })
+
+  await prisma.$transaction(async (tx) => {
+    await tx.lineOperation.deleteMany({ where: { lineId } })
+    if (hopLe.length > 0) {
+      await tx.lineOperation.createMany({
+        data: hopLe.map((o, i) => ({ lineId, operationId: o.id, seq: i + 1 })),
+      })
+    }
+    await tx.auditLog.create({
+      data: {
+        userId: u.id,
+        action: 'DAT_NGUYEN_CONG_CHUYEN',
+        entityType: 'Line',
+        entityId: lineId,
+        after: { soNguyenCong: hopLe.length },
+      },
+    })
+  })
+
+  revalidatePath('/day-chuyen')
+  revalidatePath('/so-do-xuong')
+  return { ok: true }
+}
+
+/** Đổi vị trí và kích thước của một chuyền trên sơ đồ mặt bằng xưởng. */
+export async function doiViTriChuyen(input: {
+  lineId: string
+  tang?: number
+  viTriX?: number
+  viTriY?: number
+  rong?: number
+  cao?: number
+  loai?: 'CHUYEN' | 'BAN' | 'MAY'
+}): Promise<KetQua> {
+  const u = await batBuocDangNhap('SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR')
+  if (!input.lineId) return { loi: 'Thiếu dây chuyền.' }
+
+  const trongKhoang = (v: number | undefined, min: number, max: number) =>
+    v === undefined ? undefined : Math.min(max, Math.max(min, Math.round(v)))
+
+  const data = {
+    tang: trongKhoang(input.tang, 1, 9),
+    viTriX: trongKhoang(input.viTriX, 0, 95),
+    viTriY: trongKhoang(input.viTriY, 0, 92),
+    rong: trongKhoang(input.rong, 5, 100),
+    cao: trongKhoang(input.cao, 4, 60),
+    loai: input.loai,
+  }
+
+  await prisma.line.update({ where: { id: input.lineId }, data })
+  await prisma.auditLog.create({
+    data: {
+      userId: u.id,
+      action: 'DOI_VI_TRI_CHUYEN',
+      entityType: 'Line',
+      entityId: input.lineId,
+      after: data as object,
+    },
+  })
+
+  revalidatePath('/so-do-xuong')
+  return { ok: true }
+}

@@ -114,6 +114,7 @@ model Operation {
 
   orderOperations OrderOperation[]
   seats           Seat[]
+  lines           LineOperation[]
 
   @@unique([sectionId, seq])
   @@index([sectionId, isActive])
@@ -209,14 +210,30 @@ model OrderOperation {
 // Sơ đồ dây chuyền ngồi hai mặt. Mỗi vị trí gắn sẵn một nguyên công;
 // kéo công nhân vào vị trí là người đó nhận nguyên công của vị trí đó.
 // ============================================================
+/** Kiểu vị trí sản xuất — quyết định cách vẽ trên sơ đồ và cách xếp chỗ. */
+enum LoaiViTri {
+  CHUYEN // băng chuyền ngồi hai mặt
+  BAN    // dãy bàn một hàng, ví dụ bàn đầu kiểm 1-8
+  MAY    // máy đứng lẻ, không có chỗ ngồi cố định
+}
+
 model Line {
-  id       String  @id @default(cuid())
-  code     String  @unique // DC1, DC2
+  id       String    @id @default(cuid())
+  code     String    @unique // DC1, DC2
   name     String
-  soGhe    Int     @default(20)
+  soGhe    Int       @default(20)
+  loai     LoaiViTri @default(CHUYEN)
   teamId   String?
-  team     Team?   @relation(fields: [teamId], references: [id])
-  isActive Boolean @default(true)
+  team     Team?     @relation(fields: [teamId], references: [id])
+  isActive Boolean   @default(true)
+
+  // Vị trí trên sơ đồ mặt bằng xưởng. Toạ độ tính theo phần trăm khung của tầng,
+  // nên sơ đồ co giãn đúng trên cả điện thoại lẫn máy tính.
+  tang   Int @default(2)
+  viTriX Int @default(5) // % tính từ mép trái
+  viTriY Int @default(5) // % tính từ mép trên
+  rong   Int @default(60) // % chiều rộng khung
+  cao    Int @default(10) // % chiều cao khung
 
   // Lệnh đang chạy trên dây chuyền này — quyết định nguyên công nào gán được cho ghế
   currentOrderId String?
@@ -224,7 +241,31 @@ model Line {
   shiftId        String?
   shift          Shift?           @relation(fields: [shiftId], references: [id])
 
-  seats Seat[]
+  seats      Seat[]
+  operations LineOperation[]
+
+  @@index([tang, isActive])
+}
+
+/**
+ * Nguyên công mà một chuyền được phép làm.
+ *
+ * Mỗi chuyền chỉ đảm nhận một phần công đoạn của sản phẩm, không phải toàn bộ:
+ * chuyền lắp ráp làm phần lắp, bàn đầu kiểm làm phần kiểm, chuyền bao gói làm
+ * phần bao gói. Danh sách này lọc lại ô chọn nguyên công của từng ghế.
+ *
+ * Chuyền chưa cấu hình gì thì được coi là làm mọi nguyên công của lệnh đang chạy.
+ */
+model LineOperation {
+  id          String    @id @default(cuid())
+  lineId      String
+  line        Line      @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  operationId String
+  operation   Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  seq         Int       @default(0)
+
+  @@unique([lineId, operationId])
+  @@index([lineId])
 }
 
 enum SeatSide {

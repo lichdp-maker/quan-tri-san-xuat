@@ -6,6 +6,7 @@
     "build": "prisma generate && next build",
     "db:batdoimk": "tsx prisma/bat-doi-mat-khau.ts",
     "db:demo": "tsx prisma/seed-demo.ts",
+    "db:matbang": "tsx prisma/mat-bang-xuong.ts",
     "db:migrate": "prisma migrate dev",
     "db:nhansu": "tsx prisma/seed-nhan-su.ts",
     "db:push": "prisma db push",

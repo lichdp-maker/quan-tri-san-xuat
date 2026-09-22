@@ -116,6 +116,17 @@ export function IconDongChay({ className = 'h-6 w-6' }: P) {
   )
 }
 
+export function IconMatBang({ className = 'h-6 w-6' }: P) {
+  return (
+    <svg {...chung} className={className}>
+      <rect x="3" y="3.5" width="18" height="17" rx="2" />
+      <rect x="5.5" y="6" width="8" height="2.6" rx="0.8" />
+      <rect x="5.5" y="10.7" width="13" height="2.6" rx="0.8" />
+      <rect x="5.5" y="15.4" width="10" height="2.6" rx="0.8" />
+    </svg>
+  )
+}
+
 export function IconMuiTenPhai({ className = 'h-5 w-5' }: P) {
   return (
     <svg {...chung} className={className}>
