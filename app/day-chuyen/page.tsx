@@ -211,6 +211,7 @@ export default async function TrangDayChuyen({
                 ten: o.name,
                 giay: o.standardSeconds,
                 sanPham: o.section.product.name,
+                maSanPham: o.section.product.code,
                 boPhan: o.section.name,
               }))}
             />
