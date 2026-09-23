@@ -4,7 +4,9 @@ import { nguoiDangDangNhap, TEN_VAI_TRO } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { ngayHomNay, ngayLamViec, dinhDangNgay } from '@/lib/date'
 import { Header } from '@/components/Header'
+import { laNgayHopLe, cachNgay } from '@/lib/ngay-xep'
 import SoDoDayChuyen from './SoDoDayChuyen'
+import ThanhNgay from './ThanhNgay'
 import ThemDayChuyen from './ThemDayChuyen'
 import ThietLapChuyen from './ThietLapChuyen'
 
@@ -15,14 +17,20 @@ const DUOC_VAO = ['TEAM_LEADER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR']
 export default async function TrangDayChuyen({
   searchParams,
 }: {
-  searchParams: Promise<{ dc?: string }>
+  searchParams: Promise<{ dc?: string; ngay?: string }>
 }) {
   const u = await nguoiDangDangNhap()
   if (!u) redirect('/dang-nhap')
   if (!DUOC_VAO.includes(u.role)) redirect('/')
 
-  const { dc } = await searchParams
-  const ymd = ngayHomNay()
+  const { dc, ngay } = await searchParams
+  const homNay = ngayHomNay()
+  // Xem lại tối đa 30 ngày trước, xếp trước tối đa 14 ngày sau
+  const ymd =
+    ngay && laNgayHopLe(ngay) && cachNgay(homNay, ngay) >= -30 && cachNgay(homNay, ngay) <= 14
+      ? ngay
+      : homNay
+  const chiXem = cachNgay(homNay, ymd) < 0
   const workDate = ngayLamViec(ymd)
   const locTo = u.role === 'TEAM_LEADER' ? { teamId: u.teamId ?? '' } : {}
   const laQuanLy = u.role !== 'TEAM_LEADER'
@@ -148,6 +156,14 @@ export default async function TrangDayChuyen({
         </div>
       ) : (
         <>
+          <ThanhNgay
+            ngay={ymd}
+            homNay={homNay}
+            lineId={line?.id ?? null}
+            tenChuyen={line?.name ?? null}
+            duocChep={true}
+          />
+
           {/* Chọn chuyền — một hàng duy nhất, cuộn ngang khi nhiều chuyền */}
           <div className="mb-4 flex items-center gap-2">
             <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-1">
@@ -157,7 +173,7 @@ export default async function TrangDayChuyen({
                 return (
                   <Link
                     key={l.id}
-                    href={`/day-chuyen?dc=${l.id}`}
+                    href={`/day-chuyen?dc=${l.id}&ngay=${ymd}`}
                     className={`${dangXem ? 'chip-bat' : 'chip-tat'} shrink-0`}
                     title={
                       l.currentOrder ? `Đang chạy ${l.currentOrder.product.name}` : 'Chưa chọn lệnh'
@@ -242,6 +258,8 @@ export default async function TrangDayChuyen({
           {line && (
             <SoDoDayChuyen
               ngay={dinhDangNgay(ymd)}
+              ymd={ymd}
+              chiXem={chiXem}
               coLenh={!!line.currentOrderId && !!line.shiftId}
               tenSanPham={line.currentOrder?.product.name ?? null}
               ghe={ghe.map((g) => {

@@ -29,6 +29,8 @@ function khongDau(s: string) {
 
 export default function SoDoDayChuyen({
   ngay,
+  ymd,
+  chiXem,
   coLenh,
   tenSanPham,
   ghe,
@@ -37,6 +39,10 @@ export default function SoDoDayChuyen({
   tenChuyenNay,
 }: {
   ngay: string
+  /** Ngày làm việc đang xếp, dạng YYYY-MM-DD — mọi thao tác gán/gỡ đều theo ngày này. */
+  ymd: string
+  /** Ngày đã qua: chỉ xem lại, không sửa. */
+  chiXem: boolean
   coLenh: boolean
   tenSanPham: string | null
   ghe: Ghe[]
@@ -88,9 +94,10 @@ export default function SoDoDayChuyen({
   }, [moGhe, dangChon])
 
   function datNguoi(seatId: string, userId: string) {
+    if (chiXem) return
     setBao(null)
     batDau(async () => {
-      const kq = await ganNguoiVaoGhe(seatId, userId)
+      const kq = await ganNguoiVaoGhe(seatId, userId, ymd)
       setBao(kq.loi ? { loi: kq.loi } : { ok: kq.chu ?? 'Đã xếp chỗ' })
       if (!kq.loi) {
         setDangChon(null)
@@ -100,9 +107,10 @@ export default function SoDoDayChuyen({
   }
 
   function go(seatId: string) {
+    if (chiXem) return
     setBao(null)
     batDau(async () => {
-      const kq = await goNguoiKhoiGhe(seatId)
+      const kq = await goNguoiKhoiGhe(seatId, ymd)
       if (kq.loi) setBao({ loi: kq.loi })
     })
   }
@@ -126,6 +134,7 @@ export default function SoDoDayChuyen({
   }
 
   function bamGhe(g: Ghe) {
+    if (chiXem) return
     if (dangChon) {
       if (!g.operationId) {
         setBao({ loi: `Vị trí ${g.side}${g.seq} chưa gán nguyên công.` })

@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { batBuocDangNhap } from '@/lib/session'
 import { ngoaiPhamViTo } from '@/lib/quyen'
-import { ngayHomNay, ngayLamViec } from '@/lib/date'
+import { ngayHomNay, ngayLamViec, dinhDangNgay } from '@/lib/date'
+import { kiemTraNgayXep } from '@/lib/ngay-xep'
 
 const QUAN_LY = ['TEAM_LEADER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'] as const
 
@@ -219,8 +220,17 @@ export async function ganNguyenCongChoGhe(seatId: string, operationId: string): 
  * Kéo một công nhân vào vị trí ngồi.
  * Tạo luôn phân công của hôm nay cho nguyên công gắn với vị trí đó.
  */
-export async function ganNguoiVaoGhe(seatId: string, userId: string): Promise<KetQua> {
+export async function ganNguoiVaoGhe(
+  seatId: string,
+  userId: string,
+  ymd?: string,
+): Promise<KetQua> {
   const u = await batBuocDangNhap(...QUAN_LY)
+
+  const homNay = ngayHomNay()
+  const ngay = ymd || homNay
+  const loiNgay = kiemTraNgayXep(ngay, homNay)
+  if (loiNgay) return { loi: loiNgay }
 
   const seat = await prisma.seat.findUnique({
     where: { id: seatId },
@@ -243,7 +253,7 @@ export async function ganNguoiVaoGhe(seatId: string, userId: string): Promise<Ke
   })
   if (!oo) return { loi: 'Nguyên công của vị trí này không thuộc lệnh đang chạy.' }
 
-  const workDate = ngayLamViec(ngayHomNay())
+  const workDate = ngayLamViec(ngay)
 
   // Một vị trí chỉ một người trong ngày: gỡ người cũ ra trước
   await prisma.assignment.deleteMany({
@@ -300,9 +310,15 @@ export async function ganNguoiVaoGhe(seatId: string, userId: string): Promise<Ke
 }
 
 /** Gỡ người khỏi vị trí. Chỉ gỡ được khi người đó chưa nhập số liệu nào. */
-export async function goNguoiKhoiGhe(seatId: string): Promise<KetQua> {
+export async function goNguoiKhoiGhe(seatId: string, ymd?: string): Promise<KetQua> {
   const u = await batBuocDangNhap(...QUAN_LY)
-  const workDate = ngayLamViec(ngayHomNay())
+
+  const homNay = ngayHomNay()
+  const ngay = ymd || homNay
+  const loiNgay = kiemTraNgayXep(ngay, homNay)
+  if (loiNgay) return { loi: loiNgay }
+
+  const workDate = ngayLamViec(ngay)
 
   const ghe = await prisma.seat.findUnique({
     where: { id: seatId },
@@ -416,4 +432,153 @@ export async function doiViTriChuyen(input: {
 
   revalidatePath('/so-do-xuong')
   return { ok: true }
+}
+
+/**
+ * Nhân bản sắp xếp nhân sự của một ngày sang ngày khác.
+ *
+ * Hôm sau thường ngồi y như hôm trước, nên chép lại rồi chỉnh vài chỗ nhanh hơn
+ * nhiều so với xếp lại từ đầu. Chép theo VỊ TRÍ: ai ngồi ghế nào hôm nguồn thì
+ * ngồi đúng ghế đó ngày đích. Nguyên công và lệnh lấy theo cấu hình HIỆN TẠI của
+ * chuyền, không lấy theo ngày nguồn — vì lệnh có thể đã đổi.
+ */
+export async function chepPhanCong(input: {
+  tuNgay: string
+  denNgay: string
+  lineId?: string
+  ghiDe?: boolean
+}): Promise<KetQua> {
+  const u = await batBuocDangNhap(...QUAN_LY)
+
+  const homNay = ngayHomNay()
+  const loiNgay = kiemTraNgayXep(input.denNgay, homNay)
+  if (loiNgay) return { loi: loiNgay }
+  if (input.tuNgay === input.denNgay) return { loi: 'Ngày nguồn và ngày đích trùng nhau.' }
+
+  const tu = ngayLamViec(input.tuNgay)
+  const den = ngayLamViec(input.denNgay)
+
+  const chuyens = await prisma.line.findMany({
+    where: { isActive: true, ...(input.lineId ? { id: input.lineId } : {}) },
+    select: {
+      id: true,
+      name: true,
+      teamId: true,
+      currentOrderId: true,
+      shiftId: true,
+      seats: { select: { id: true, side: true, seq: true, operationId: true } },
+    },
+  })
+  if (chuyens.length === 0) return { loi: 'Không tìm thấy chuyền nào để chép.' }
+
+  let daChep = 0
+  let boQuaCoNguoi = 0
+  let boQuaChuaCauHinh = 0
+  const canhBao: string[] = []
+
+  for (const c of chuyens) {
+    if (ngoaiPhamViTo(u.role, u.teamId, c.teamId)) continue
+
+    if (!c.currentOrderId || !c.shiftId) {
+      canhBao.push(`${c.name}: chưa chọn lệnh hoặc ca`)
+      continue
+    }
+
+    const gheTheoId = new Map(c.seats.map((g) => [g.id, g]))
+    const idGhe = c.seats.map((g) => g.id)
+    if (idGhe.length === 0) continue
+
+    const nguon = await prisma.assignment.findMany({
+      where: { workDate: tu, seatId: { in: idGhe } },
+      select: { seatId: true, userId: true, user: { select: { isActive: true, teamId: true } } },
+    })
+    if (nguon.length === 0) continue
+
+    const dich = await prisma.assignment.findMany({
+      where: { workDate: den, seatId: { in: idGhe } },
+      select: { id: true, seatId: true, _count: { select: { entries: true } } },
+    })
+    const dangCo = new Map(dich.map((d) => [d.seatId!, d]))
+
+    for (const n of nguon) {
+      const ghe = gheTheoId.get(n.seatId!)
+      if (!ghe || !ghe.operationId) {
+        boQuaChuaCauHinh++
+        continue
+      }
+      if (!n.user.isActive || !n.user.teamId) continue
+      if (u.role === 'TEAM_LEADER' && n.user.teamId !== u.teamId) continue
+
+      const cu = dangCo.get(n.seatId!)
+      if (cu) {
+        if (!input.ghiDe || cu._count.entries > 0) {
+          boQuaCoNguoi++
+          continue
+        }
+        await prisma.assignment.delete({ where: { id: cu.id } })
+      }
+
+      const oo = await prisma.orderOperation.findUnique({
+        where: {
+          orderId_operationId: { orderId: c.currentOrderId, operationId: ghe.operationId },
+        },
+        select: { id: true },
+      })
+      if (!oo) {
+        boQuaChuaCauHinh++
+        continue
+      }
+
+      await prisma.assignment.upsert({
+        where: {
+          orderOperationId_userId_workDate_shiftId: {
+            orderOperationId: oo.id,
+            userId: n.userId,
+            workDate: den,
+            shiftId: c.shiftId,
+          },
+        },
+        update: { seatId: n.seatId, teamId: n.user.teamId },
+        create: {
+          orderOperationId: oo.id,
+          userId: n.userId,
+          teamId: n.user.teamId,
+          shiftId: c.shiftId,
+          workDate: den,
+          seatId: n.seatId,
+          assignedById: u.id,
+        },
+      })
+      daChep++
+    }
+  }
+
+  await prisma.auditLog.create({
+    data: {
+      userId: u.id,
+      action: 'CHEP_PHAN_CONG',
+      entityType: 'Assignment',
+      entityId: input.lineId ?? 'TAT_CA',
+      after: { tuNgay: input.tuNgay, denNgay: input.denNgay, daChep },
+    },
+  })
+
+  revalidatePath('/day-chuyen')
+  revalidatePath('/so-do-xuong')
+
+  if (daChep === 0 && boQuaCoNguoi === 0 && boQuaChuaCauHinh === 0) {
+    return { loi: `Ngày ${dinhDangNgay(input.tuNgay)} chưa có ai được xếp chỗ để chép.` }
+  }
+
+  const phu: string[] = []
+  if (boQuaCoNguoi > 0) phu.push(`${boQuaCoNguoi} chỗ ngày đích đã có người nên giữ nguyên`)
+  if (boQuaChuaCauHinh > 0) phu.push(`${boQuaChuaCauHinh} chỗ chưa gán nguyên công theo lệnh mới`)
+  if (canhBao.length > 0) phu.push(canhBao.join('; '))
+
+  return {
+    ok: true,
+    chu: `Đã chép ${daChep} người sang ngày ${dinhDangNgay(input.denNgay)}${
+      phu.length > 0 ? ` · ${phu.join(' · ')}` : ''
+    }.`,
+  }
 }
