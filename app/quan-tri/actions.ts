@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { hash } from '@node-rs/argon2'
 import { prisma } from '@/lib/prisma'
 import { batBuocDangNhap } from '@/lib/session'
@@ -239,14 +240,17 @@ export async function suaCa(formData: FormData): Promise<void> {
   const name = String(formData.get('name') ?? '').trim()
   const startTime = String(formData.get('startTime') ?? '').trim()
   const endTime = String(formData.get('endTime') ?? '').trim()
-  if (!id || !name || !/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) return
+  const isActive = formData.get('isActive') === 'on'
+  if (!id || !name) veCa('Ca phải có tên.')
+  if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime))
+    veCa('Giờ bắt đầu và kết thúc phải theo dạng 07:45.')
 
-  await prisma.shift.update({ where: { id }, data: { name, startTime, endTime } })
+  await prisma.shift.update({ where: { id }, data: { name, startTime, endTime, isActive } })
   await prisma.auditLog.create({
-    data: { userId: u.id, action: 'SUA_CA', entityType: 'Shift', entityId: id, after: { startTime, endTime } },
+    data: { userId: u.id, action: 'SUA_CA', entityType: 'Shift', entityId: id, after: { name, startTime, endTime, isActive } },
   })
 
-  revalidatePath('/quan-tri')
+  veCa(`Đã lưu ca ${name}.`, false)
 }
 
 /**
@@ -263,15 +267,20 @@ export async function suaMocGio(formData: FormData): Promise<void> {
   const breakMinutes = Number(String(formData.get('breakMinutes') ?? '0'))
   const isActive = formData.get('isActive') === 'on'
 
-  if (!id || !label) return
-  if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) return
-  if (!Number.isFinite(breakMinutes) || breakMinutes < 0) return
-  if (soPhut(startTime, endTime, breakMinutes) <= 0) return // nghỉ dài hơn cả khoảng
+  if (!id || !label) veCa('Mốc giờ phải có tên.')
+  if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime))
+    veCa(`Mốc ${label}: giờ phải theo dạng 09:30.`)
+  if (!Number.isFinite(breakMinutes) || breakMinutes < 0)
+    veCa(`Mốc ${label}: số phút nghỉ không hợp lệ.`)
+  if (soPhut(startTime, endTime, breakMinutes) <= 0)
+    veCa(`Mốc ${label}: nghỉ ${breakMinutes} phút dài hơn cả khoảng ${startTime}–${endTime}.`)
 
+  const cu = await prisma.timeSlot.findUnique({ where: { id }, select: { shiftId: true } })
   await prisma.timeSlot.update({
     where: { id },
     data: { label, startTime, endTime, breakMinutes, isActive },
   })
+  if (cu) await sapXepLaiMoc(cu.shiftId)
 
   await prisma.auditLog.create({
     data: {
@@ -283,7 +292,7 @@ export async function suaMocGio(formData: FormData): Promise<void> {
     },
   })
 
-  revalidatePath('/quan-tri')
+  veCa(`Đã lưu mốc ${label}.`, false)
 }
 
 export async function themMocGio(formData: FormData): Promise<void> {
@@ -294,8 +303,14 @@ export async function themMocGio(formData: FormData): Promise<void> {
   const startTime = String(formData.get('startTime') ?? '').trim()
   const endTime = String(formData.get('endTime') ?? '').trim()
   const breakMinutes = Number(String(formData.get('breakMinutes') ?? '0'))
-  if (!shiftId || !label) return
-  if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) return
+  if (!shiftId || !label) veCa('Mốc giờ mới phải có tên.')
+  if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime))
+    veCa('Giờ của mốc mới phải theo dạng 09:30.')
+  if (soPhut(startTime, endTime, Number.isFinite(breakMinutes) ? breakMinutes : 0) <= 0)
+    veCa(`Mốc ${label}: nghỉ dài hơn cả khoảng ${startTime}–${endTime}.`)
+
+  const trung = await prisma.timeSlot.findFirst({ where: { shiftId, label } })
+  if (trung) veCa(`Ca này đã có mốc tên ${label} rồi.`)
 
   const cuoi = await prisma.timeSlot.findFirst({ where: { shiftId }, orderBy: { seq: 'desc' } })
 
@@ -310,9 +325,109 @@ export async function themMocGio(formData: FormData): Promise<void> {
     },
   })
 
+  await sapXepLaiMoc(shiftId)
+
   await prisma.auditLog.create({
     data: { userId: u.id, action: 'THEM_MOC_GIO', entityType: 'TimeSlot', entityId: s.id, after: { label } },
   })
 
-  revalidatePath('/quan-tri')
+  veCa(`Đã thêm mốc ${label}.`, false)
+}
+
+/** Đánh số lại mốc giờ theo giờ bắt đầu. Hai lượt vì có ràng buộc duy nhất (shiftId, seq). */
+async function sapXepLaiMoc(shiftId: string) {
+  const ds = await prisma.timeSlot.findMany({
+    where: { shiftId },
+    orderBy: { startTime: 'asc' },
+    select: { id: true },
+  })
+  if (ds.length === 0) return
+  await prisma.$transaction([
+    ...ds.map((s, i) => prisma.timeSlot.update({ where: { id: s.id }, data: { seq: -(i + 1) } })),
+    ...ds.map((s, i) => prisma.timeSlot.update({ where: { id: s.id }, data: { seq: i + 1 } })),
+  ])
+}
+
+function veCa(thongBao: string, loi = true): never {
+  redirect(`/quan-tri?tab=ca&${loi ? 'loi' : 'ok'}=${encodeURIComponent(thongBao)}`)
+}
+
+/** Thêm một ca làm việc mới, có thể chép sẵn bộ mốc giờ của ca đang dùng. */
+export async function themCa(formData: FormData): Promise<void> {
+  const u = await batBuocDangNhap(...QUAN_TRI)
+
+  const code = String(formData.get('code') ?? '').trim().toUpperCase()
+  const name = String(formData.get('name') ?? '').trim()
+  const startTime = String(formData.get('startTime') ?? '').trim()
+  const endTime = String(formData.get('endTime') ?? '').trim()
+  const chepTu = String(formData.get('chepTu') ?? '')
+
+  if (!code || !name) veCa('Nhập đủ mã ca và tên ca.')
+  if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime))
+    veCa('Giờ bắt đầu và kết thúc phải theo dạng 07:45.')
+
+  const trung = await prisma.shift.findUnique({ where: { code } })
+  if (trung) veCa(`Mã ca ${code} đã có rồi (${trung.name}).`)
+
+  const ca = await prisma.shift.create({ data: { code, name, startTime, endTime } })
+
+  let soChep = 0
+  if (chepTu) {
+    const moc = await prisma.timeSlot.findMany({ where: { shiftId: chepTu }, orderBy: { seq: 'asc' } })
+    if (moc.length > 0) {
+      await prisma.timeSlot.createMany({
+        data: moc.map((m) => ({
+          shiftId: ca.id,
+          seq: m.seq,
+          label: m.label,
+          startTime: m.startTime,
+          endTime: m.endTime,
+          breakMinutes: m.breakMinutes,
+          graceMinutes: m.graceMinutes,
+          isActive: m.isActive,
+        })),
+      })
+      soChep = moc.length
+    }
+  }
+
+  await prisma.auditLog.create({
+    data: { userId: u.id, action: 'THEM_CA', entityType: 'Shift', entityId: ca.id, after: { code, name, soChep } },
+  })
+
+  veCa(`Đã tạo ca ${name}${soChep > 0 ? ` và chép ${soChep} mốc giờ` : ''}.`, false)
+}
+
+/** Xoá một mốc giờ. Mốc đã có người nhập số liệu thì chỉ tắt, không xoá. */
+export async function xoaMocGio(formData: FormData): Promise<void> {
+  const u = await batBuocDangNhap(...QUAN_TRI)
+
+  const id = String(formData.get('id') ?? '')
+  if (!id) veCa('Thiếu mốc giờ cần xoá.')
+
+  const moc = await prisma.timeSlot.findUnique({
+    where: { id },
+    select: { label: true, shiftId: true, _count: { select: { entries: true } } },
+  })
+  if (!moc) veCa('Mốc giờ không còn tồn tại.')
+
+  if (moc._count.entries > 0) {
+    await prisma.timeSlot.update({ where: { id }, data: { isActive: false } })
+    await prisma.auditLog.create({
+      data: { userId: u.id, action: 'TAT_MOC_GIO', entityType: 'TimeSlot', entityId: id, after: { label: moc.label } },
+    })
+    veCa(
+      `Mốc ${moc.label} đã có ${moc._count.entries} bản ghi sản lượng nên không xoá được — đã tắt để không dùng tiếp.`,
+      false,
+    )
+  }
+
+  await prisma.timeSlot.delete({ where: { id } })
+  await sapXepLaiMoc(moc.shiftId)
+
+  await prisma.auditLog.create({
+    data: { userId: u.id, action: 'XOA_MOC_GIO', entityType: 'TimeSlot', entityId: id, after: { label: moc.label } },
+  })
+
+  veCa(`Đã xoá mốc ${moc.label}.`, false)
 }
