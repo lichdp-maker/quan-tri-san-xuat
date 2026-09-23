@@ -15,7 +15,11 @@ type Ghe = {
   nguoi: Nguoi | null
 }
 type NguyenCong = { id: string; ten: string; boPhan: string; giay: number; conLai: number }
-/** dangO: tên những chuyền người này đang ngồi hôm nay (có thể ngồi nhiều chuyền). */
+/**
+ * dangO: những chỗ người này đang giữ trong ngày, dạng "Chuyền · A3 · Lắp trụ sáng".
+ * Một người làm nhiều việc trong một ca là bình thường — xếp thêm chỗ nữa vẫn được,
+ * hệ thống chỉ nhắc để tổ trưởng biết mình đang chia thời gian của họ ra mấy việc.
+ */
 type CongNhan = { id: string; ma: string; ten: string; to: string; dangO: string[] }
 /** Bỏ dấu để tìm kiếm gõ không dấu vẫn ra. */
 function khongDau(s: string) {
@@ -375,7 +379,7 @@ export default function SoDoDayChuyen({
           <p className="font-semibold">
             Công nhân{' '}
             <span className="text-sm font-normal text-slate-500">
-              · {soConTrong} người chưa xếp / {congNhan.length}
+              · {soConTrong} người chưa có việc / {congNhan.length}
             </span>
           </p>
 
@@ -385,7 +389,7 @@ export default function SoDoDayChuyen({
               checked={anDaXep}
               onChange={(e) => setAnDaXep(e.target.checked)}
             />
-            Ẩn người đã xếp
+            Ẩn người đã có việc
           </label>
         </div>
 
@@ -425,8 +429,8 @@ export default function SoDoDayChuyen({
 
         {dsLoc.length === 0 ? (
           <p className="text-sm text-slate-500">
-            Không còn ai để xếp với bộ lọc hiện tại. Bỏ dấu tìm, chọn lại tổ, hoặc bỏ tích “Ẩn người
-            đã xếp”.
+            Không còn ai để xếp với bộ lọc hiện tại. Bỏ tích “Ẩn người đã có việc” nếu muốn giao
+            thêm việc thứ hai trong ca cho người đã có chỗ.
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
@@ -457,12 +461,15 @@ export default function SoDoDayChuyen({
                   </span>
                   {daXepRoi && (
                     <span
+                      title={c.dangO.join('\n')}
                       className={[
                         'mt-0.5 block truncate text-[11px]',
                         dangChon === c.id ? 'text-white/85' : 'text-amber-700',
                       ].join(' ')}
                     >
-                      đang ở {c.dangO.join(', ')}
+                      {c.dangO.length > 1
+                        ? `đang làm ${c.dangO.length} việc`
+                        : `đang ở ${c.dangO[0]}`}
                     </span>
                   )}
                 </button>
@@ -649,11 +656,11 @@ function BangGhe({
                           <span className="block truncate text-[11px] text-slate-500">
                             {c.ma} · {c.to}
                           </span>
-                          {c.dangO.length > 0 && (
-                            <span className="block truncate text-[11px] text-amber-700">
-                              đang ở {c.dangO.join(', ')}
+                          {c.dangO.map((v) => (
+                            <span key={v} className="block truncate text-[11px] text-amber-700">
+                              đang ở {v}
                             </span>
-                          )}
+                          ))}
                         </span>
                         <span className="shrink-0 text-xs text-brand-700">Xếp vào →</span>
                       </button>

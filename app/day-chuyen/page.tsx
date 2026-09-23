@@ -107,16 +107,23 @@ export default async function TrangDayChuyen({
   // Ai đang ngồi ở chuyền nào trong hôm nay — tính trên toàn bộ 4 chuyền, không riêng chuyền đang xem
   const xepHomNay = await prisma.assignment.findMany({
     where: { workDate, seatId: { not: null } },
-    select: { userId: true, seat: { select: { lineId: true } } },
+    select: {
+      userId: true,
+      seat: { select: { lineId: true, side: true, seq: true } },
+      orderOperation: { select: { operation: { select: { name: true } } } },
+    },
   })
 
+  // Một người có thể làm nhiều việc trong cùng một ca: ghi rõ từng chỗ đang giữ,
+  // kèm tên nguyên công, để tổ trưởng biết đang xếp thêm việc thứ mấy cho họ.
   const tenChuyen = new Map(lines.map((l) => [l.id, l.name]))
   const dangNgoi = new Map<string, string[]>()
   for (const x of xepHomNay) {
     const ten = tenChuyen.get(x.seat!.lineId)
     if (!ten) continue
+    const nhan = `${ten} ${x.seat!.side}${x.seat!.seq} · ${x.orderOperation.operation.name}`
     const cu = dangNgoi.get(x.userId) ?? []
-    if (!cu.includes(ten)) dangNgoi.set(x.userId, [...cu, ten])
+    if (!cu.includes(nhan)) dangNgoi.set(x.userId, [...cu, nhan])
   }
 
   // Đã xong = số lượng đã qua hết mọi nguyên công của lệnh
