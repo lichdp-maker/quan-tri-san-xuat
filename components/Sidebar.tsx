@@ -54,7 +54,7 @@ const NHOM: Nhom[] = [
         vaiTro: ['TEAM_LEADER', 'ENGINEER', 'PLANNER', 'WAREHOUSE', ...QUAN_LY],
       },
       {
-        ten: 'Sơ đồ dây chuyền',
+        ten: 'Sơ đồ sắp xếp nhân sự',
         href: '/day-chuyen',
         icon: <IconSoDo className="h-5 w-5" />,
         vaiTro: ['TEAM_LEADER', ...QUAN_LY],

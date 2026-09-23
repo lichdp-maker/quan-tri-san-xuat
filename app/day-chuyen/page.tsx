@@ -120,7 +120,7 @@ export default async function TrangDayChuyen({
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-5">
       <Header
-        tieuDe="Sơ đồ dây chuyền"
+        tieuDe="Sơ đồ sắp xếp nhân sự"
         phu={`${u.fullName} · ${TEN_VAI_TRO[u.role]} · ${dinhDangNgay(ymd)}`}
         nguoiDung={u}
         them={

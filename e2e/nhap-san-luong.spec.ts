@@ -42,7 +42,7 @@ test.describe('Công nhân nhập sản lượng', () => {
     await expect(page).not.toHaveURL(/\/bang-dieu-khien/)
   })
 
-  test('công nhân không vào được sơ đồ dây chuyền', async ({ page }) => {
+  test('công nhân không vào được sơ đồ sắp xếp nhân sự', async ({ page }) => {
     await dangNhap(page, CN.ma, CN.mk)
 
     await page.goto('/day-chuyen')
@@ -74,7 +74,7 @@ test.describe('Tổ trưởng duyệt sản lượng', () => {
   })
 })
 
-test.describe('Sơ đồ dây chuyền', () => {
+test.describe('Sơ đồ sắp xếp nhân sự', () => {
   test.skip(!TT.ma || !TT.mk, 'Cần E2E_TT_MA và E2E_TT_MK')
 
   test('tổ trưởng chỉ thấy công nhân tổ mình trong danh sách xếp chỗ', async ({ page }) => {

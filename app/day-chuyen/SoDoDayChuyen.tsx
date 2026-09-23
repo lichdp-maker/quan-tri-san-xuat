@@ -262,7 +262,7 @@ export default function SoDoDayChuyen({
       {/* Lệnh đang chạy trên dây chuyền */}
       {lenh && <BangLenh lenh={lenh} ngay={ngay} chuyen={tenChuyenNay} />}
 
-      {/* Sơ đồ dây chuyền */}
+      {/* Sơ đồ sắp xếp nhân sự */}
       <section className="min-w-0">
         <div className="the">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
