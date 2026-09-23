@@ -28,14 +28,19 @@ export default function NguyenCongCuaChuyen({
   dangChon,
   lineId,
   duocSua,
+  nhung,
+  xongThi,
 }: {
   tenChuyen: string
   tatCa: NC[]
   dangChon: string[]
   lineId: string
   duocSua: boolean
+  /** Nhúng trong bảng cài đặt: luôn mở, không có khung thẻ riêng. */
+  nhung?: boolean
+  xongThi?: () => void
 }) {
-  const [mo, setMo] = useState(false)
+  const [mo, setMo] = useState(!!nhung)
   const [chon, setChon] = useState<Set<string>>(new Set(dangChon))
   const [tim, setTim] = useState('')
   const [bao, setBao] = useState<{ loi?: string; ok?: string } | null>(null)
@@ -107,12 +112,15 @@ export default function NguyenCongCuaChuyen({
     batDau(async () => {
       const kq = await datNguyenCongChoChuyen(lineId, [...chon])
       setBao(kq.loi ? { loi: kq.loi } : { ok: `Đã lưu ${chon.size} nguyên công cho ${tenChuyen}` })
-      if (!kq.loi) setMo(false)
+      if (!kq.loi) {
+        setMo(false)
+        xongThi?.()
+      }
     })
   }
 
   // ---------- Thu gọn ----------
-  if (!mo) {
+  if (!mo && !nhung) {
     const tomTat = sanPhams
       .filter((s) => (soChon.get(s.ten) ?? 0) > 0)
       .map((s) => `${s.ma} ${soChon.get(s.ten)}`)
@@ -145,10 +153,13 @@ export default function NguyenCongCuaChuyen({
 
   // ---------- Mở ----------
   return (
-    <section className="the mb-5">
+    <section className={nhung ? '' : 'the mb-5'}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="font-semibold">Nguyên công chuyền {tenChuyen} đảm nhận</p>
-        <p className="text-sm text-slate-500">đang chọn {chon.size} nguyên công</p>
+        <p className="text-sm text-slate-600">
+          Chọn đúng phần việc chuyền này đảm nhận, tổ trưởng sẽ chỉ thấy các nguyên công đó khi gán
+          cho chỗ ngồi.
+        </p>
+        <p className="shrink-0 text-sm font-medium text-slate-700">đang chọn {chon.size}</p>
       </div>
 
       {bao?.loi && (
@@ -256,7 +267,8 @@ export default function NguyenCongCuaChuyen({
         <button
           onClick={() => {
             setChon(new Set(dangChon))
-            setMo(false)
+            if (nhung) xongThi?.()
+            else setMo(false)
           }}
           className="nut-phu px-3 py-2 text-sm"
         >
@@ -268,7 +280,8 @@ export default function NguyenCongCuaChuyen({
       </div>
 
       <p className="mt-2 text-xs text-slate-500">
-        Bỏ hết rồi lưu = chuyền không bị giới hạn, ghế chọn được mọi nguyên công của lệnh đang chạy.
+        Bỏ hết rồi lưu = chuyền không bị giới hạn, chỗ ngồi chọn được mọi nguyên công của lệnh đang
+        chạy.
       </p>
     </section>
   )

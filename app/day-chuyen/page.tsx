@@ -4,10 +4,9 @@ import { nguoiDangDangNhap, TEN_VAI_TRO } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { ngayHomNay, ngayLamViec, dinhDangNgay } from '@/lib/date'
 import { Header } from '@/components/Header'
-import { datLenhChoDayChuyen, doiDayChuyen } from './actions'
 import SoDoDayChuyen from './SoDoDayChuyen'
 import ThemDayChuyen from './ThemDayChuyen'
-import NguyenCongCuaChuyen from './NguyenCongCuaChuyen'
+import ThietLapChuyen from './ThietLapChuyen'
 
 export const dynamic = 'force-dynamic'
 
@@ -112,6 +111,10 @@ export default async function TrangDayChuyen({
     if (!cu.includes(ten)) dangNgoi.set(x.userId, [...cu, ten])
   }
 
+  // Đã xong = số lượng đã qua hết mọi nguyên công của lệnh
+  const daXongLenh =
+    nguyenCongs.length > 0 ? Math.min(...nguyenCongs.map((oo) => oo.doneQtyOk)) : 0
+
   const demTheoChuyen = new Map<string, number>()
   for (const x of xepHomNay) {
     demTheoChuyen.set(x.seat!.lineId, (demTheoChuyen.get(x.seat!.lineId) ?? 0) + 1)
@@ -145,67 +148,83 @@ export default async function TrangDayChuyen({
         </div>
       ) : (
         <>
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            {lines.map((l) => {
-              const daXep = demTheoChuyen.get(l.id) ?? 0
-              const dangXem = l.id === line?.id
-              return (
-                <Link
-                  key={l.id}
-                  href={`/day-chuyen?dc=${l.id}`}
-                  className={dangXem ? 'chip-bat' : 'chip-tat'}
-                  title={l.currentOrder ? `Đang chạy ${l.currentOrder.product.name}` : 'Chưa chọn lệnh'}
-                >
-                  {l.name}
-                  <span className={dangXem ? 'ml-1.5 opacity-80' : 'ml-1.5 text-slate-400'}>
-                    {daXep}/{l._count.seats}
-                  </span>
-                </Link>
-              )
-            })}
+          {/* Chọn chuyền — một hàng duy nhất, cuộn ngang khi nhiều chuyền */}
+          <div className="mb-4 flex items-center gap-2">
+            <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-1">
+              {lines.map((l) => {
+                const daXep = demTheoChuyen.get(l.id) ?? 0
+                const dangXem = l.id === line?.id
+                return (
+                  <Link
+                    key={l.id}
+                    href={`/day-chuyen?dc=${l.id}`}
+                    className={`${dangXem ? 'chip-bat' : 'chip-tat'} shrink-0`}
+                    title={
+                      l.currentOrder ? `Đang chạy ${l.currentOrder.product.name}` : 'Chưa chọn lệnh'
+                    }
+                  >
+                    <span
+                      aria-hidden
+                      className={[
+                        'mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle',
+                        l.currentOrder
+                          ? dangXem
+                            ? 'bg-white'
+                            : 'bg-emerald-500'
+                          : dangXem
+                            ? 'bg-white/50'
+                            : 'bg-amber-400',
+                      ].join(' ')}
+                    />
+                    {l.name}
+                    <span className={dangXem ? 'ml-1.5 opacity-80' : 'ml-1.5 text-slate-400'}>
+                      {daXep}/{l._count.seats}
+                    </span>
+                  </Link>
+                )
+              })}
+            </div>
             {laQuanLy && (
-              <ThemDayChuyen tos={tos} daCo={lines.flatMap((l) => [l.code, l.name])} />
+              <div className="shrink-0 border-l border-slate-200 pl-2">
+                <ThemDayChuyen tos={tos} daCo={lines.flatMap((l) => [l.code, l.name])} />
+              </div>
             )}
           </div>
 
           {line && (
-            <form
-              key={`lenh-${line.id}`}
-              action={datLenhChoDayChuyen}
-              className="the mb-5 flex flex-wrap items-end gap-3"
-            >
-              <input type="hidden" name="lineId" value={line.id} />
-              <label className="flex flex-1 flex-col gap-1">
-                <span className="text-xs text-slate-600">Lệnh đang chạy trên dây chuyền</span>
-                <select name="orderId" defaultValue={line.currentOrderId ?? ''} className="o-chon">
-                  <option value="">— chưa chọn —</option>
-                  {lenhs.map((l2) => (
-                    <option key={l2.id} value={l2.id}>
-                      {l2.code} · {l2.product.name} · {l2.quantity} {l2.product.unit}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-slate-600">Ca</span>
-                <select name="shiftId" defaultValue={line.shiftId ?? ''} className="o-chon w-44">
-                  <option value="">— chưa chọn —</option>
-                  {cas.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </label>
-              <button className="nut-nho">Lưu</button>
-            </form>
-          )}
-
-          {line && (
-            <NguyenCongCuaChuyen
-              lineId={line.id}
-              tenChuyen={line.name}
-              duocSua={laQuanLy}
-              dangChon={[...boLoc]}
-              tatCa={moiNguyenCong.map((o) => ({
+            <ThietLapChuyen
+              line={{
+                id: line.id,
+                ten: line.name,
+                ma: line.code,
+                soGhe: line._count.seats,
+                teamId: line.teamId,
+                loai: line.loai,
+                orderId: line.currentOrderId,
+                shiftId: line.shiftId,
+              }}
+              lenhs={lenhs.map((l2) => ({
+                id: l2.id,
+                nhan: `${l2.code} · ${l2.product.name} · ${l2.quantity} ${l2.product.unit}`,
+              }))}
+              cas={cas.map((c) => ({ id: c.id, ten: c.name }))}
+              tos={tos.map((t) => ({ id: t.id, ten: t.name }))}
+              tenCa={line.shift?.name ?? null}
+              dangChay={
+                line.currentOrder
+                  ? {
+                      ma: line.currentOrder.code,
+                      sanPham: line.currentOrder.product.name,
+                      maSanPham: line.currentOrder.product.code,
+                      soLuong: line.currentOrder.quantity,
+                      donVi: line.currentOrder.product.unit,
+                      xong: daXongLenh,
+                      soNguyenCongLenh: nguyenCongs.length,
+                    }
+                  : null
+              }
+              ncDangChon={[...boLoc]}
+              ncTatCa={moiNguyenCong.map((o) => ({
                 id: o.id,
                 ma: o.code,
                 ten: o.name,
@@ -214,87 +233,17 @@ export default async function TrangDayChuyen({
                 maSanPham: o.section.product.code,
                 boPhan: o.section.name,
               }))}
+              daXep={demTheoChuyen.get(line.id) ?? 0}
+              tongGhe={line._count.seats}
+              duocSuaChuyen={laQuanLy}
             />
-          )}
-
-          {line && laQuanLy && (
-            <details className="the mb-5">
-              <summary className="cursor-pointer text-sm font-medium text-slate-700">
-                Sửa chuyền {line.name} — đổi tên, số ghế, tổ phụ trách
-              </summary>
-              <form
-                key={`sua-${line.id}`}
-                action={doiDayChuyen}
-                className="mt-3 flex flex-wrap items-end gap-3"
-              >
-                <input type="hidden" name="lineId" value={line.id} />
-                <label className="flex min-w-48 flex-1 flex-col gap-1">
-                  <span className="text-xs text-slate-600">Tên dây chuyền</span>
-                  <input name="name" required defaultValue={line.name} className="o-nhap py-2" />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs text-slate-600">Số ghế</span>
-                  <input
-                    name="soGhe"
-                    defaultValue={String(line._count.seats)}
-                    inputMode="numeric"
-                    className="o-nhap w-20 py-2 text-center"
-                  />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs text-slate-600">Tổ phụ trách</span>
-                  <select name="teamId" defaultValue={line.teamId ?? ''} className="o-chon w-44">
-                    <option value="">— chung —</option>
-                    {tos.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs text-slate-600">Kiểu vị trí</span>
-                  <select name="loai" defaultValue={line.loai} className="o-chon w-36">
-                    <option value="CHUYEN">Băng chuyền</option>
-                    <option value="BAN">Dãy bàn</option>
-                    <option value="MAY">Máy</option>
-                  </select>
-                </label>
-                <label className="flex items-center gap-2 pb-2 text-sm text-slate-600">
-                  <input type="checkbox" name="conDung" value="co" defaultChecked />
-                  Còn dùng
-                </label>
-                <button className="nut-nho">Lưu chuyền</button>
-              </form>
-              <p className="mt-2 text-xs text-slate-500">
-                Bỏ tích “Còn dùng” thì chuyền bị ẩn khỏi danh sách, số liệu cũ vẫn giữ nguyên. Giảm
-                số ghế chỉ bỏ được những ghế chưa có ai ngồi.
-              </p>
-            </details>
           )}
 
           {line && (
             <SoDoDayChuyen
               ngay={dinhDangNgay(ymd)}
               coLenh={!!line.currentOrderId && !!line.shiftId}
-              lenh={
-                line.currentOrder
-                  ? {
-                      ma: line.currentOrder.code,
-                      sanPham: line.currentOrder.product.name,
-                      maSanPham: line.currentOrder.product.code,
-                      soLuong: line.currentOrder.quantity,
-                      donVi: line.currentOrder.product.unit,
-                      // Đã xong = số lượng đã qua hết mọi nguyên công của lệnh
-                      xong:
-                        nguyenCongs.length > 0
-                          ? Math.min(...nguyenCongs.map((oo) => oo.doneQtyOk))
-                          : 0,
-                      ca: line.shift?.name ?? null,
-                      soNguyenCong: nguyenCongs.length,
-                    }
-                  : null
-              }
+              tenSanPham={line.currentOrder?.product.name ?? null}
               ghe={ghe.map((g) => {
                 const a = g.assignments[0]
                 return {
