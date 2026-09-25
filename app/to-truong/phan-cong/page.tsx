@@ -3,11 +3,11 @@ import Link from 'next/link'
 import { nguoiDangDangNhap } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { ngayHomNay, ngayLamViec, dinhDangNgay } from '@/lib/date'
+import { coQuyen } from '@/lib/chuc-nang'
 import { taoPhanCong, xoaPhanCong } from '../actions'
 
 export const dynamic = 'force-dynamic'
 
-const DUOC_VAO = ['TEAM_LEADER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR']
 
 export default async function TrangPhanCong({
   searchParams,
@@ -16,7 +16,7 @@ export default async function TrangPhanCong({
 }) {
   const u = await nguoiDangDangNhap()
   if (!u) redirect('/dang-nhap')
-  if (!DUOC_VAO.includes(u.role)) redirect('/')
+  if (!coQuyen(u.quyen, 'CHOT_SO')) redirect('/')
 
   const { lenh: lenhChon } = await searchParams
   const ymd = ngayHomNay()

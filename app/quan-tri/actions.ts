@@ -4,13 +4,13 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { hash } from '@node-rs/argon2'
 import { prisma } from '@/lib/prisma'
-import { batBuocDangNhap } from '@/lib/session'
+import { batBuocQuyen } from '@/lib/session'
 import { caoHon, duocSuaNguoiDung, duocDatLaiMatKhau } from '@/lib/quyen'
 import { soPhut } from '@/lib/date'
 import { kiemTraMatKhau, sinhPin } from '@/lib/mat-khau'
+import { tachThemBot } from '@/lib/chuc-nang'
+import { laTinhTrang } from '@/lib/tinh-trang'
 import type { Role } from '@prisma/client'
-
-const QUAN_TRI = ['SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'] as const
 
 const VAI_TRO_HOP_LE: Role[] = [
   'WORKER',
@@ -26,7 +26,7 @@ const VAI_TRO_HOP_LE: Role[] = [
 // ===================== NGƯỜI DÙNG =====================
 
 export async function themNguoiDung(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_TRI)
+  const u = await batBuocQuyen('QT_NGUOI_DUNG')
 
   const employeeCode = String(formData.get('employeeCode') ?? '').trim().toUpperCase()
   const fullName = String(formData.get('fullName') ?? '').trim()
@@ -72,7 +72,7 @@ export async function themNguoiDung(formData: FormData): Promise<void> {
  * Mọi tài khoản tạo ở đây đều bị bắt đổi mật khẩu ở lần đăng nhập đầu.
  */
 export async function themNhieuNguoiDung(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_TRI)
+  const u = await batBuocQuyen('QT_NGUOI_DUNG')
 
   const danhSach = String(formData.get('danhSach') ?? '')
   const dong = danhSach
@@ -129,7 +129,7 @@ export async function themNhieuNguoiDung(formData: FormData): Promise<void> {
 }
 
 export async function suaNguoiDung(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_TRI)
+  const u = await batBuocQuyen('QT_NGUOI_DUNG')
 
   const id = String(formData.get('id') ?? '')
   const role = String(formData.get('role') ?? '') as Role
@@ -162,7 +162,7 @@ export async function suaNguoiDung(formData: FormData): Promise<void> {
 }
 
 export async function datLaiMatKhau(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_TRI)
+  const u = await batBuocQuyen('QT_NGUOI_DUNG')
 
   const id = String(formData.get('id') ?? '')
   const matKhau = String(formData.get('password') ?? '').trim()
@@ -201,7 +201,7 @@ export async function datLaiMatKhau(formData: FormData): Promise<void> {
 // ===================== TỔ =====================
 
 export async function themTo(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_TRI)
+  const u = await batBuocQuyen('QT_TO')
 
   const code = String(formData.get('code') ?? '').trim().toUpperCase()
   const name = String(formData.get('name') ?? '').trim()
@@ -217,7 +217,7 @@ export async function themTo(formData: FormData): Promise<void> {
 }
 
 export async function ganToTruong(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_TRI)
+  const u = await batBuocQuyen('QT_TO')
 
   const id = String(formData.get('id') ?? '')
   const leaderId = String(formData.get('leaderId') ?? '')
@@ -234,7 +234,7 @@ export async function ganToTruong(formData: FormData): Promise<void> {
 // ===================== CA & MỐC GIỜ =====================
 
 export async function suaCa(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_TRI)
+  const u = await batBuocQuyen('QT_CA')
 
   const id = String(formData.get('id') ?? '')
   const name = String(formData.get('name') ?? '').trim()
@@ -258,7 +258,7 @@ export async function suaCa(formData: FormData): Promise<void> {
  * mốc thật lúc nhập (slotStartAt / slotEndAt), nên báo cáo quá khứ giữ nguyên.
  */
 export async function suaMocGio(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_TRI)
+  const u = await batBuocQuyen('QT_CA')
 
   const id = String(formData.get('id') ?? '')
   const label = String(formData.get('label') ?? '').trim()
@@ -296,7 +296,7 @@ export async function suaMocGio(formData: FormData): Promise<void> {
 }
 
 export async function themMocGio(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_TRI)
+  const u = await batBuocQuyen('QT_CA')
 
   const shiftId = String(formData.get('shiftId') ?? '')
   const label = String(formData.get('label') ?? '').trim()
@@ -354,7 +354,7 @@ function veCa(thongBao: string, loi = true): never {
 
 /** Thêm một ca làm việc mới, có thể chép sẵn bộ mốc giờ của ca đang dùng. */
 export async function themCa(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_TRI)
+  const u = await batBuocQuyen('QT_CA')
 
   const code = String(formData.get('code') ?? '').trim().toUpperCase()
   const name = String(formData.get('name') ?? '').trim()
@@ -400,7 +400,7 @@ export async function themCa(formData: FormData): Promise<void> {
 
 /** Xoá một mốc giờ. Mốc đã có người nhập số liệu thì chỉ tắt, không xoá. */
 export async function xoaMocGio(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_TRI)
+  const u = await batBuocQuyen('QT_CA')
 
   const id = String(formData.get('id') ?? '')
   if (!id) veCa('Thiếu mốc giờ cần xoá.')
@@ -430,4 +430,89 @@ export async function xoaMocGio(formData: FormData): Promise<void> {
   })
 
   veCa(`Đã xoá mốc ${moc.label}.`, false)
+}
+
+/**
+ * Lưu toàn bộ hồ sơ nhân sự trong một lần: vai trò, tổ, tình trạng làm việc và
+ * danh sách chức năng được tích. Chức năng lưu dưới dạng chênh lệch so với bộ
+ * mặc định của vai trò, để sau này sửa bộ mặc định thì mọi người ăn theo ngay.
+ */
+export async function luuNhanSu(input: {
+  id: string
+  role: string
+  teamId: string
+  tinhTrang: string
+  ghiChu: string
+  chucNang: string[]
+}): Promise<{ ok?: true; loi?: string }> {
+  const u = await batBuocQuyen('QT_NGUOI_DUNG')
+
+  const role = input.role as Role
+  if (!input.id) return { loi: 'Thiếu người cần sửa.' }
+  if (!VAI_TRO_HOP_LE.includes(role)) return { loi: 'Vai trò không hợp lệ.' }
+  if (!laTinhTrang(input.tinhTrang)) return { loi: 'Tình trạng làm việc không hợp lệ.' }
+
+  const mucTieu = await prisma.user.findUnique({
+    where: { id: input.id },
+    select: { role: true, fullName: true },
+  })
+  if (!mucTieu) return { loi: 'Không tìm thấy người này.' }
+
+  // Nghỉ việc thì tài khoản ngừng hoạt động luôn, khỏi phải nhớ tắt thêm một ô
+  const isActive = input.tinhTrang !== 'NGHI_VIEC'
+
+  // Chặn leo thang quyền — quy tắc nằm trong lib/quyen.ts và có test riêng
+  const duoc = duocSuaNguoiDung(u, { id: input.id, role: mucTieu.role }, { role, isActive })
+  if (!duoc.ok) return { loi: duoc.loi ?? 'Bạn không sửa được người này.' }
+
+  const { them, bot } = tachThemBot(role, input.chucNang)
+
+  await prisma.user.update({
+    where: { id: input.id },
+    data: {
+      role,
+      teamId: input.teamId || null,
+      tinhTrang: input.tinhTrang,
+      ghiChu: input.ghiChu.trim() || null,
+      isActive,
+      quyenThem: them,
+      quyenBot: bot,
+    },
+  })
+
+  await prisma.auditLog.create({
+    data: {
+      userId: u.id,
+      action: 'SUA_NHAN_SU',
+      entityType: 'User',
+      entityId: input.id,
+      after: { role, tinhTrang: input.tinhTrang, isActive, them, bot },
+    },
+  })
+
+  revalidatePath('/quan-tri')
+  return { ok: true }
+}
+
+/** Thêm tổ ngay trong tab danh sách nhân sự, có báo lỗi rõ ràng. */
+export async function themToNhanh(input: {
+  code: string
+  name: string
+}): Promise<{ ok?: true; loi?: string }> {
+  const u = await batBuocQuyen('QT_TO')
+
+  const code = input.code.trim().toUpperCase()
+  const name = input.name.trim()
+  if (!code || !name) return { loi: 'Nhập đủ mã tổ và tên tổ.' }
+
+  const trung = await prisma.team.findUnique({ where: { code } })
+  if (trung) return { loi: `Mã tổ ${code} đã dùng cho "${trung.name}".` }
+
+  const to = await prisma.team.create({ data: { code, name } })
+  await prisma.auditLog.create({
+    data: { userId: u.id, action: 'THEM_TO', entityType: 'Team', entityId: to.id, after: { code, name } },
+  })
+
+  revalidatePath('/quan-tri')
+  return { ok: true }
 }

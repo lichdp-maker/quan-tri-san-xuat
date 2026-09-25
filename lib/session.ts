@@ -9,6 +9,8 @@ import { SignJWT, jwtVerify } from 'jose'
 import type { Role } from '@prisma/client'
 import { prisma } from './prisma'
 import { phienConHieuLuc } from './quyen'
+import { quyenCuaNguoi, coQuyen, type MaChucNang } from './chuc-nang'
+import { duocDangNhap, type TinhTrang } from './tinh-trang'
 
 const TEN_COOKIE = 'phien'
 const HAN_NGAY = 30
@@ -27,6 +29,10 @@ export type NguoiDung = {
   teamId: string | null
   /** true = chưa đổi mật khẩu mặc định, phải đổi trước khi dùng hệ thống */
   phaiDoiMatKhau: boolean
+  /** Tình trạng nhân sự: đang làm, tăng cường, mùa vụ, nghỉ dài hạn, nghỉ việc */
+  tinhTrang: TinhTrang
+  /** Chức năng người này thật sự có = mặc định vai trò + thêm − bớt */
+  quyen: MaChucNang[]
 }
 
 export async function taoPhien(u: { id: string }): Promise<void> {
@@ -86,11 +92,16 @@ export const nguoiDangDangNhap = cache(async (): Promise<NguoiDung | null> => {
       role: true,
       teamId: true,
       isActive: true,
+      tinhTrang: true,
+      quyenThem: true,
+      quyenBot: true,
       mustChangePassword: true,
       passwordChangedAt: true,
     },
   })
   if (!u) return null
+  // Nghỉ việc thì mất quyền vào hệ thống ngay, số liệu cũ vẫn giữ nguyên
+  if (!duocDangNhap(u.tinhTrang)) return null
 
   // Quy tắc nằm trong lib/quyen.ts và có test riêng: tài khoản bị khoá thì mất
   // phiên ngay, và phiên cấp trước lần đổi mật khẩu gần nhất cũng hết hiệu lực.
@@ -103,6 +114,8 @@ export const nguoiDangDangNhap = cache(async (): Promise<NguoiDung | null> => {
     role: u.role,
     teamId: u.teamId,
     phaiDoiMatKhau: u.mustChangePassword,
+    tinhTrang: u.tinhTrang,
+    quyen: quyenCuaNguoi(u.role, u.quyenThem, u.quyenBot),
   }
 })
 
@@ -119,6 +132,18 @@ export async function batBuocDangNhap(...vaiTro: Role[]): Promise<NguoiDung> {
   return u
 }
 
+
+/**
+ * Chặn theo CHỨC NĂNG, không theo vai trò. Dùng cho mọi server action mới —
+ * quản trị tích/bỏ tích chức năng cho từng người thì hiệu lực ngay.
+ */
+export async function batBuocQuyen(...ma: MaChucNang[]): Promise<NguoiDung> {
+  const u = await nguoiDangDangNhap()
+  if (!u) throw new Error('CHUA_DANG_NHAP')
+  if (u.phaiDoiMatKhau) throw new Error('PHAI_DOI_MAT_KHAU')
+  if (ma.length > 0 && !coQuyen(u.quyen, ...ma)) throw new Error('KHONG_CO_QUYEN')
+  return u
+}
 
 /** Trang mặc định theo vai trò. */
 export function trangChinh(role: Role): string {

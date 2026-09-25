@@ -2,15 +2,13 @@
 
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { batBuocDangNhap } from '@/lib/session'
+import { batBuocQuyen } from '@/lib/session'
 import { locBanGhiDuocDuyet, lenhConNhanSanLuong, ngoaiPhamViTo } from '@/lib/quyen'
 import { ngayHomNay, ngayLamViec } from '@/lib/date'
 
-const QUAN_LY = ['TEAM_LEADER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'] as const
-
 /** Duyệt bản ghi: chuyển sang APPROVED và cộng vào tiến độ của nguyên công. */
 export async function duyetBanGhi(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_LY)
+  const u = await batBuocQuyen('CHOT_SO')
   const ids = formData.getAll('id').map(String).filter(Boolean)
   if (ids.length === 0) return
 
@@ -64,7 +62,7 @@ export async function duyetBanGhi(formData: FormData): Promise<void> {
 
 /** Từ chối bản ghi để công nhân nhập lại. Không cộng vào tiến độ. */
 export async function tuChoiBanGhi(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_LY)
+  const u = await batBuocQuyen('CHOT_SO')
   const id = String(formData.get('id') ?? '')
   if (!id) return
 
@@ -86,7 +84,7 @@ export async function tuChoiBanGhi(formData: FormData): Promise<void> {
 
 /** Gán một công nhân vào một nguyên công của lệnh, cho ngày hôm nay. */
 export async function taoPhanCong(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_LY)
+  const u = await batBuocQuyen('CHOT_SO')
 
   const userId = String(formData.get('userId') ?? '')
   const orderOperationId = String(formData.get('orderOperationId') ?? '')
@@ -134,7 +132,7 @@ export async function taoPhanCong(formData: FormData): Promise<void> {
 
 /** Gỡ phân công khi chưa có bản ghi nào. */
 export async function xoaPhanCong(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_LY)
+  const u = await batBuocQuyen('CHOT_SO')
   const id = String(formData.get('id') ?? '')
   if (!id) return
 

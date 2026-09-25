@@ -3,18 +3,18 @@ import { nguoiDangDangNhap } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { ngayHomNay, ngayLamViec, gioHienTai, soPhut, dinhDangNgay } from '@/lib/date'
 import { themNgay } from '@/lib/ngay-xep'
+import { coQuyen } from '@/lib/chuc-nang'
 import { Header } from '@/components/Header'
 import ManHinhNhap from './ManHinhNhap'
 
 export const dynamic = 'force-dynamic'
 
-const DUOC_VAO = ['WORKER', 'TEAM_LEADER']
 
 export default async function TrangCongNhan() {
   const u = await nguoiDangDangNhap()
   if (!u) redirect('/dang-nhap')
   if (u.phaiDoiMatKhau) redirect('/doi-mat-khau')
-  if (!DUOC_VAO.includes(u.role)) redirect('/')
+  if (!coQuyen(u.quyen, 'NHAP_SAN_LUONG')) redirect('/')
 
   const ymd = ngayHomNay()
   const workDate = ngayLamViec(ymd)

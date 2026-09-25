@@ -2,13 +2,12 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { nguoiDangDangNhap, TEN_VAI_TRO } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
+import { coQuyen } from '@/lib/chuc-nang'
 import { Header } from '@/components/Header'
 import SoDoDongChay from './SoDoDongChay'
 
 export const dynamic = 'force-dynamic'
 
-const DUOC_VAO = ['ENGINEER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR', 'PLANNER', 'TEAM_LEADER']
-const DUOC_SUA = ['ENGINEER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR']
 
 export default async function TrangDongChay({
   searchParams,
@@ -17,7 +16,7 @@ export default async function TrangDongChay({
 }) {
   const u = await nguoiDangDangNhap()
   if (!u) redirect('/dang-nhap')
-  if (!DUOC_VAO.includes(u.role)) redirect('/')
+  if (!coQuyen(u.quyen, 'XEM_DONG_CHAY', 'SUA_DONG_CHAY')) redirect('/')
 
   const { sp } = await searchParams
 
@@ -74,7 +73,7 @@ export default async function TrangDongChay({
         </p>
       ) : (
         <SoDoDongChay
-          duocSua={DUOC_SUA.includes(u.role)}
+          duocSua={coQuyen(u.quyen, 'SUA_DONG_CHAY')}
           sanPham={{ id: sanPham.id, code: sanPham.code, ten: sanPham.name, donVi: sanPham.unit, laBo: sanPham.isKit }}
           boPhans={boPhans.map((s) => ({
             id: s.id,

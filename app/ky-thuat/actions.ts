@@ -2,9 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { batBuocDangNhap } from '@/lib/session'
-
-const KY_THUAT = ['ENGINEER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'] as const
+import { batBuocQuyen } from '@/lib/session'
 
 /**
  * Sửa định mức của một nguyên công.
@@ -12,7 +10,7 @@ const KY_THUAT = ['ENGINEER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'] as 
  * (OrderOperation.standardSeconds). Thay đổi ở đây chỉ áp dụng cho lệnh phát hành sau này.
  */
 export async function suaDinhMuc(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...KY_THUAT)
+  const u = await batBuocQuyen('DINH_MUC')
 
   const id = String(formData.get('id') ?? '')
   const giay = Number(String(formData.get('standardSeconds') ?? ''))
@@ -44,7 +42,7 @@ export async function suaDinhMuc(formData: FormData): Promise<void> {
 }
 
 export async function themNguyenCong(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...KY_THUAT)
+  const u = await batBuocQuyen('DINH_MUC')
 
   const sectionId = String(formData.get('sectionId') ?? '')
   const name = String(formData.get('name') ?? '').trim()
@@ -86,7 +84,7 @@ export async function themNguyenCong(formData: FormData): Promise<void> {
 }
 
 export async function themSanPham(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...KY_THUAT)
+  const u = await batBuocQuyen('DINH_MUC')
 
   const code = String(formData.get('code') ?? '').trim().toUpperCase()
   const name = String(formData.get('name') ?? '').trim()
@@ -111,7 +109,7 @@ export async function themSanPham(formData: FormData): Promise<void> {
 }
 
 export async function themBoPhan(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...KY_THUAT)
+  const u = await batBuocQuyen('DINH_MUC')
 
   const productId = String(formData.get('productId') ?? '')
   const code = String(formData.get('code') ?? '').trim().toUpperCase()
@@ -144,7 +142,7 @@ export async function themBoPhan(formData: FormData): Promise<void> {
 
 /** Kỹ thuật xác định nguyên nhân và hướng xử lý cho một phiếu lỗi. */
 export async function xuLyPhieuLoi(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...KY_THUAT, 'TEAM_LEADER')
+  const u = await batBuocQuyen('DINH_MUC', 'CHOT_SO')
 
   const id = String(formData.get('id') ?? '')
   const causeId = String(formData.get('causeId') ?? '')

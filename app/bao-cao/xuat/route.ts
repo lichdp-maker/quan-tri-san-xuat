@@ -2,8 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { nguoiDangDangNhap } from '@/lib/session'
 import { ngayHomNay, ngayLamViec } from '@/lib/date'
-
-const DUOC_XUAT = ['PLANNER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR', 'ENGINEER']
+import { coQuyen } from '@/lib/chuc-nang'
 
 function o(v: unknown): string {
   const s = v === null || v === undefined ? '' : String(v)
@@ -17,7 +16,8 @@ function o(v: unknown): string {
 export async function GET(req: NextRequest) {
   const u = await nguoiDangDangNhap()
   if (!u) return NextResponse.json({ loi: 'Chưa đăng nhập' }, { status: 401 })
-  if (!DUOC_XUAT.includes(u.role)) return NextResponse.json({ loi: 'Không có quyền' }, { status: 403 })
+  if (!coQuyen(u.quyen, 'XEM_TONG_HOP'))
+    return NextResponse.json({ loi: 'Không có quyền' }, { status: 403 })
 
   const sp = req.nextUrl.searchParams
   const homNay = ngayHomNay()

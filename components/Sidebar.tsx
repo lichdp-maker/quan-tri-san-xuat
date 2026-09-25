@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import type { Role } from '@prisma/client'
+import type { MaChucNang } from '@/lib/chuc-nang'
 import {
   IconBieuDo,
   IconPhieu,
@@ -18,18 +18,9 @@ import {
   IconMatBang,
 } from './Icons'
 
-type Muc = { ten: string; href: string; icon: React.ReactNode; vaiTro: Role[] }
+/** can = null nghĩa là ai đăng nhập được cũng thấy. */
+type Muc = { ten: string; href: string; icon: React.ReactNode; can: MaChucNang[] | null }
 type Nhom = { nhan: string; muc: Muc[] }
-
-const QUAN_LY: Role[] = ['SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR']
-const TAT_CA: Role[] = [
-  'WORKER',
-  'TEAM_LEADER',
-  'ENGINEER',
-  'WAREHOUSE',
-  'PLANNER',
-  ...QUAN_LY,
-]
 
 const NHOM: Nhom[] = [
   {
@@ -39,37 +30,37 @@ const NHOM: Nhom[] = [
         ten: 'Bảng tổng hợp',
         href: '/bang-dieu-khien',
         icon: <IconBieuDo className="h-5 w-5" />,
-        vaiTro: ['PLANNER', 'ENGINEER', 'WAREHOUSE', ...QUAN_LY],
+        can: ['XEM_TONG_HOP'],
       },
       {
         ten: 'Nhập sản lượng',
         href: '/cong-nhan',
         icon: <IconDongHo className="h-5 w-5" />,
-        vaiTro: ['WORKER', 'TEAM_LEADER'],
+        can: ['NHAP_SAN_LUONG'],
       },
       {
         ten: 'Mặt bằng xưởng',
         href: '/so-do-xuong',
         icon: <IconMatBang className="h-5 w-5" />,
-        vaiTro: ['TEAM_LEADER', 'ENGINEER', 'PLANNER', 'WAREHOUSE', ...QUAN_LY],
+        can: ['XEM_MAT_BANG'],
       },
       {
         ten: 'Sơ đồ sắp xếp nhân sự',
         href: '/day-chuyen',
         icon: <IconSoDo className="h-5 w-5" />,
-        vaiTro: ['TEAM_LEADER', ...QUAN_LY],
+        can: ['XEP_NHAN_SU'],
       },
       {
         ten: 'Chốt số · Phân công',
         href: '/to-truong',
         icon: <IconNguoi className="h-5 w-5" />,
-        vaiTro: ['TEAM_LEADER', ...QUAN_LY],
+        can: ['CHOT_SO'],
       },
       {
         ten: 'Lệnh sản xuất',
         href: '/lenh-san-xuat',
         icon: <IconPhieu className="h-5 w-5" />,
-        vaiTro: ['PLANNER', ...QUAN_LY],
+        can: ['QUAN_LY_LENH'],
       },
     ],
   },
@@ -80,13 +71,13 @@ const NHOM: Nhom[] = [
         ten: 'Sơ đồ dòng chảy',
         href: '/dong-chay',
         icon: <IconDongChay className="h-5 w-5" />,
-        vaiTro: ['ENGINEER', 'PLANNER', 'TEAM_LEADER', ...QUAN_LY],
+        can: ['XEM_DONG_CHAY', 'SUA_DONG_CHAY'],
       },
       {
         ten: 'Định mức · Phiếu lỗi',
         href: '/ky-thuat',
         icon: <IconBanhRang className="h-5 w-5" />,
-        vaiTro: ['ENGINEER', ...QUAN_LY],
+        can: ['DINH_MUC'],
       },
     ],
   },
@@ -97,25 +88,26 @@ const NHOM: Nhom[] = [
         ten: 'Quản trị',
         href: '/quan-tri',
         icon: <IconKhoa className="h-5 w-5" />,
-        vaiTro: QUAN_LY,
+        can: ['QT_NGUOI_DUNG', 'QT_TO', 'QT_CA'],
       },
       {
         ten: 'Đổi mật khẩu',
         href: '/doi-mat-khau',
         icon: <IconChiaKhoa className="h-5 w-5" />,
-        vaiTro: TAT_CA,
+        can: null,
       },
     ],
   },
 ]
 
-export function Sidebar({ vaiTro }: { vaiTro: Role }) {
+export function Sidebar({ quyen }: { quyen: readonly string[] }) {
   const duong = usePathname()
   const [mo, setMo] = useState(false)
 
-  const nhom = NHOM.map((n) => ({ ...n, muc: n.muc.filter((m) => m.vaiTro.includes(vaiTro)) })).filter(
-    (n) => n.muc.length > 0,
-  )
+  const nhom = NHOM.map((n) => ({
+    ...n,
+    muc: n.muc.filter((m) => m.can === null || m.can.some((c) => quyen.includes(c))),
+  })).filter((n) => n.muc.length > 0)
 
   const dangO = (href: string) => duong === href || duong.startsWith(href + '/')
 

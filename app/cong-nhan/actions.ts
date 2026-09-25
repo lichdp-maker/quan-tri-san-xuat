@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { batBuocDangNhap } from '@/lib/session'
+import { batBuocQuyen } from '@/lib/session'
 import { ngayHomNay, ngayLamViec, mocThoiGian, soPhut, gioHienTai } from '@/lib/date'
 import { calcEntry, validateSlotAllocation } from '@/lib/productivity'
 
@@ -26,7 +26,7 @@ const DuLieu = z.object({
 export type KetQuaLuu = { ok?: boolean; loi?: string; canhBao?: string[] }
 
 export async function luuSanLuong(duLieuJson: string): Promise<KetQuaLuu> {
-  const u = await batBuocDangNhap('WORKER', 'TEAM_LEADER')
+  const u = await batBuocQuyen('NHAP_SAN_LUONG')
 
   const parsed = DuLieu.safeParse(JSON.parse(duLieuJson))
   if (!parsed.success) return { loi: 'Dữ liệu gửi lên không hợp lệ.' }

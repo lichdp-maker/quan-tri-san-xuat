@@ -2,27 +2,17 @@ import { redirect } from 'next/navigation'
 import { nguoiDangDangNhap, TEN_VAI_TRO } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { ngayHomNay, ngayLamViec, dinhDangNgay } from '@/lib/date'
+import { coQuyen } from '@/lib/chuc-nang'
 import { Header } from '@/components/Header'
 import SoDoXuong from './SoDoXuong'
 
 export const dynamic = 'force-dynamic'
 
-const DUOC_VAO = [
-  'TEAM_LEADER',
-  'ENGINEER',
-  'PLANNER',
-  'WAREHOUSE',
-  'SHOP_MANAGER',
-  'DEPUTY_DIRECTOR',
-  'DIRECTOR',
-]
-const DUOC_SAP_XEP = ['SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR']
-
 export default async function TrangSoDoXuong() {
   const u = await nguoiDangDangNhap()
   if (!u) redirect('/dang-nhap')
   if (u.phaiDoiMatKhau) redirect('/doi-mat-khau')
-  if (!DUOC_VAO.includes(u.role)) redirect('/')
+  if (!coQuyen(u.quyen, 'XEM_MAT_BANG')) redirect('/')
 
   const ymd = ngayHomNay()
   const workDate = ngayLamViec(ymd)
@@ -62,7 +52,7 @@ export default async function TrangSoDoXuong() {
       />
 
       <SoDoXuong
-        duocSapXep={DUOC_SAP_XEP.includes(u.role)}
+        duocSapXep={coQuyen(u.quyen, 'SAP_XEP_MAT_BANG')}
         viTris={lines.map((l) => ({
           id: l.id,
           ma: l.code,

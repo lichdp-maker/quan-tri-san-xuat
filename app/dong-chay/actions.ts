@@ -3,9 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { batBuocDangNhap } from '@/lib/session'
-
-const DUOC_SUA = ['ENGINEER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'] as const
+import { batBuocQuyen } from '@/lib/session'
 
 export type KetQua = { ok?: boolean; loi?: string }
 
@@ -37,7 +35,7 @@ async function danhSoLai(
 
 /** Đổi thứ tự nguyên công trong một bộ phận — dùng khi kéo thả hoặc bấm mũi tên. */
 export async function doiThuTuNguyenCong(sectionId: string, thuTu: string[]): Promise<KetQua> {
-  const u = await batBuocDangNhap(...DUOC_SUA)
+  const u = await batBuocQuyen('SUA_DONG_CHAY')
   if (!sectionId || thuTu.length === 0) return { loi: 'Thiếu dữ liệu để đổi thứ tự.' }
 
   const thuoc = await prisma.operation.count({ where: { sectionId, id: { in: thuTu } } })
@@ -72,7 +70,7 @@ export async function themNguyenCong(input: {
   detail?: string
   isQC?: boolean
 }): Promise<KetQua> {
-  const u = await batBuocDangNhap(...DUOC_SUA)
+  const u = await batBuocQuyen('SUA_DONG_CHAY')
 
   const name = input.name.trim()
   const giay = Math.round(Number(input.giay))
@@ -144,7 +142,7 @@ export async function suaNguyenCong(input: {
   isQC?: boolean
   sectionId?: string
 }): Promise<KetQua> {
-  const u = await batBuocDangNhap(...DUOC_SUA)
+  const u = await batBuocQuyen('SUA_DONG_CHAY')
 
   const cu = await prisma.operation.findUnique({ where: { id: input.id } })
   if (!cu) return { loi: 'Không tìm thấy nguyên công.' }
@@ -217,7 +215,7 @@ export async function suaNguyenCong(input: {
  * để số liệu cũ của lệnh đó không bị mất.
  */
 export async function boNguyenCong(id: string): Promise<KetQua> {
-  const u = await batBuocDangNhap(...DUOC_SUA)
+  const u = await batBuocQuyen('SUA_DONG_CHAY')
 
   const op = await prisma.operation.findUnique({
     where: { id },
@@ -261,7 +259,7 @@ export async function boNguyenCong(id: string): Promise<KetQua> {
 
 /** Dùng lại một nguyên công đã ngừng. */
 export async function dungLaiNguyenCong(id: string): Promise<KetQua> {
-  const u = await batBuocDangNhap(...DUOC_SUA)
+  const u = await batBuocQuyen('SUA_DONG_CHAY')
   const op = await prisma.operation.findUnique({ where: { id } })
   if (!op) return { loi: 'Không tìm thấy nguyên công.' }
 
@@ -281,7 +279,7 @@ export async function themBoPhan(input: {
   name: string
   phuThuocTatCa?: boolean
 }): Promise<KetQua> {
-  const u = await batBuocDangNhap(...DUOC_SUA)
+  const u = await batBuocQuyen('SUA_DONG_CHAY')
 
   const code = input.code.trim().toUpperCase()
   const name = input.name.trim()

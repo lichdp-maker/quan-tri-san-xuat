@@ -4,11 +4,11 @@ import { nguoiDangDangNhap, TEN_VAI_TRO } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { soPhut } from '@/lib/date'
 import { Header } from '@/components/Header'
+import { coQuyen } from '@/lib/chuc-nang'
+import DanhSachNhanSu from './DanhSachNhanSu'
 import {
   themNguoiDung,
   themNhieuNguoiDung,
-  suaNguoiDung,
-  datLaiMatKhau,
   themTo,
   ganToTruong,
   suaCa,
@@ -20,8 +20,11 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-const DUOC_VAO = ['SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR']
-const TABS = { 'nguoi-dung': 'Người dùng', to: 'Tổ sản xuất', ca: 'Ca & mốc giờ' } as const
+const TABS = {
+  'nguoi-dung': { nhan: 'Nhân sự · phân quyền', can: 'QT_NGUOI_DUNG' },
+  to: { nhan: 'Tổ sản xuất', can: 'QT_TO' },
+  ca: { nhan: 'Ca & mốc giờ', can: 'QT_CA' },
+} as const
 
 export default async function TrangQuanTri({
   searchParams,
@@ -30,10 +33,17 @@ export default async function TrangQuanTri({
 }) {
   const u = await nguoiDangDangNhap()
   if (!u) redirect('/dang-nhap')
-  if (!DUOC_VAO.includes(u.role)) redirect('/')
+  if (!coQuyen(u.quyen, 'QT_NGUOI_DUNG', 'QT_TO', 'QT_CA')) redirect('/')
 
   const { tab, loi, ok } = await searchParams
-  const tabHienTai = (tab && tab in TABS ? tab : 'nguoi-dung') as keyof typeof TABS
+  // Chỉ hiện tab mà người này thật sự có chức năng
+  const tabDuoc = (Object.keys(TABS) as Array<keyof typeof TABS>).filter((k) =>
+    coQuyen(u.quyen, TABS[k].can),
+  )
+  const tabHienTai =
+    tab && tabDuoc.includes(tab as keyof typeof TABS)
+      ? (tab as keyof typeof TABS)
+      : tabDuoc[0]
 
   const [nguoiDung, tos, cas] = await Promise.all([
     prisma.user.findMany({ include: { team: true }, orderBy: [{ role: 'asc' }, { employeeCode: 'asc' }] }),
@@ -53,7 +63,7 @@ export default async function TrangQuanTri({
   const toTruongs = nguoiDung.filter((n) => n.role === 'TEAM_LEADER' && n.isActive)
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-5">
+    <main className="mx-auto w-full max-w-5xl px-4 py-5">
       <Header
         tieuDe="Quản trị hệ thống"
         phu={`${u.fullName} · ${TEN_VAI_TRO[u.role]}`}
@@ -61,13 +71,13 @@ export default async function TrangQuanTri({
       />
 
       <div className="mb-5 flex flex-wrap gap-2">
-        {Object.entries(TABS).map(([k, v]) => (
+        {tabDuoc.map((k) => (
           <Link
             key={k}
             href={`/quan-tri?tab=${k}`}
             className={k === tabHienTai ? 'chip-bat' : 'chip-tat'}
           >
-            {v}
+            {TABS[k].nhan}
           </Link>
         ))}
       </div>
@@ -117,50 +127,24 @@ export default async function TrangQuanTri({
             </form>
           </section>
 
-          <h2 className="mb-2 font-semibold">Danh sách tài khoản ({nguoiDung.length})</h2>
-          <div className="flex flex-col gap-2">
-            {nguoiDung.map((n) => (
-              <div key={n.id} className="the">
-                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="font-medium">
-                    {n.employeeCode} — {n.fullName}
-                    {!n.isActive && <span className="ml-2 text-xs text-red-600">đã khoá</span>}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {TEN_VAI_TRO[n.role]}
-                    {n.team && ` · ${n.team.name}`}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-4">
-                  <form action={suaNguoiDung} className="flex flex-wrap items-center gap-2">
-                    <input type="hidden" name="id" value={n.id} />
-                    <select name="role" defaultValue={n.role} className="rounded-lg border border-slate-300 px-2 py-1 text-sm">
-                      {Object.entries(TEN_VAI_TRO).map(([k, v]) => (
-                        <option key={k} value={k}>{v}</option>
-                      ))}
-                    </select>
-                    <select name="teamId" defaultValue={n.teamId ?? ''} className="rounded-lg border border-slate-300 px-2 py-1 text-sm">
-                      <option value="">không thuộc tổ</option>
-                      {tos.map((t) => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                      ))}
-                    </select>
-                    <label className="flex items-center gap-1 text-xs text-slate-600">
-                      <input type="checkbox" name="isActive" defaultChecked={n.isActive} /> đang dùng
-                    </label>
-                    <button className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-700">Lưu</button>
-                  </form>
-
-                  <form action={datLaiMatKhau} className="flex items-center gap-2">
-                    <input type="hidden" name="id" value={n.id} />
-                    <input name="password" placeholder="PIN mới" className="w-28 rounded-lg border border-slate-300 px-2 py-1 text-sm" />
-                    <button className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-700">Đặt lại</button>
-                  </form>
-                </div>
-              </div>
-            ))}
-          </div>
+          <h2 className="mb-3 font-semibold">Danh sách nhân sự ({nguoiDung.length})</h2>
+          <DanhSachNhanSu
+            duocThemTo={coQuyen(u.quyen, 'QT_TO')}
+            tenVaiTro={TEN_VAI_TRO}
+            tos={tos.map((t) => ({ id: t.id, ma: t.code, ten: t.name }))}
+            nguoiDung={nguoiDung.map((n) => ({
+              id: n.id,
+              ma: n.employeeCode,
+              ten: n.fullName,
+              role: n.role,
+              teamId: n.teamId,
+              tenTo: n.team?.name ?? null,
+              tinhTrang: n.tinhTrang,
+              ghiChu: n.ghiChu,
+              quyenThem: n.quyenThem,
+              quyenBot: n.quyenBot,
+            }))}
+          />
         </>
       )}
 

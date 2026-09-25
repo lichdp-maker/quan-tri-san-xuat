@@ -35,6 +35,14 @@ model User {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
 
+  // Tình trạng nhân sự — tách khỏi isActive: nghỉ phép dài hạn vẫn giữ tài khoản
+  tinhTrang TinhTrangNhanSu @default(DANG_LAM)
+  ghiChu    String?
+
+  // Phân quyền chi tiết: chênh lệch so với bộ mặc định của vai trò
+  quyenThem String[] @default([])
+  quyenBot  String[] @default([])
+
   // Bảo mật đăng nhập
   mustChangePassword Boolean   @default(false) // true = bắt đổi mật khẩu trước khi làm gì khác
   passwordChangedAt  DateTime? // phiên cấp trước mốc này bị vô hiệu
@@ -49,6 +57,15 @@ model User {
 
   @@index([teamId, isActive])
   @@index([role])
+  @@index([tinhTrang])
+}
+
+enum TinhTrangNhanSu {
+  DANG_LAM     // đang làm việc bình thường
+  TANG_CUONG   // tăng cường từ bộ phận / nhà máy khác
+  MUA_VU       // lao động mùa vụ
+  NGHI_DAI_HAN // nghỉ phép dài hạn, vẫn giữ tài khoản
+  NGHI_VIEC    // đã nghỉ việc, không đăng nhập được nữa
 }
 
 model Team {

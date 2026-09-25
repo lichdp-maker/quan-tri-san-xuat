@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { ngayHomNay, ngayLamViec, dinhDangNgay } from '@/lib/date'
 import { Header } from '@/components/Header'
 import { laNgayHopLe, cachNgay } from '@/lib/ngay-xep'
+import { coQuyen } from '@/lib/chuc-nang'
 import SoDoDayChuyen from './SoDoDayChuyen'
 import ThanhNgay from './ThanhNgay'
 import ThemDayChuyen from './ThemDayChuyen'
@@ -12,7 +13,6 @@ import ThietLapChuyen from './ThietLapChuyen'
 
 export const dynamic = 'force-dynamic'
 
-const DUOC_VAO = ['TEAM_LEADER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR']
 
 export default async function TrangDayChuyen({
   searchParams,
@@ -21,7 +21,7 @@ export default async function TrangDayChuyen({
 }) {
   const u = await nguoiDangDangNhap()
   if (!u) redirect('/dang-nhap')
-  if (!DUOC_VAO.includes(u.role)) redirect('/')
+  if (!coQuyen(u.quyen, 'XEP_NHAN_SU')) redirect('/')
 
   const { dc, ngay } = await searchParams
   const homNay = ngayHomNay()
@@ -33,7 +33,7 @@ export default async function TrangDayChuyen({
   const chiXem = cachNgay(homNay, ymd) < 0
   const workDate = ngayLamViec(ymd)
   const locTo = u.role === 'TEAM_LEADER' ? { teamId: u.teamId ?? '' } : {}
-  const laQuanLy = u.role !== 'TEAM_LEADER'
+  const laQuanLy = coQuyen(u.quyen, 'SAP_XEP_MAT_BANG')
 
   const [lines, tos, cas, lenhs] = await Promise.all([
     prisma.line.findMany({
@@ -99,7 +99,13 @@ export default async function TrangDayChuyen({
 
   // Tổ trưởng chỉ thấy người trong tổ mình; quản lý thấy toàn bộ công nhân đang làm việc
   const congNhan = await prisma.user.findMany({
-    where: { isActive: true, role: { in: ['WORKER', 'TEAM_LEADER'] }, ...locTo },
+    where: {
+      isActive: true,
+      role: { in: ['WORKER', 'TEAM_LEADER'] },
+      // Nghỉ việc và nghỉ phép dài hạn không hiện ra để xếp
+      tinhTrang: { in: ['DANG_LAM', 'TANG_CUONG', 'MUA_VU'] },
+      ...locTo,
+    },
     include: { team: true },
     orderBy: [{ team: { code: 'asc' } }, { employeeCode: 'asc' }],
   })

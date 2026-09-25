@@ -2,12 +2,12 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { nguoiDangDangNhap, TEN_VAI_TRO } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
+import { coQuyen } from '@/lib/chuc-nang'
 import { Header } from '@/components/Header'
 import { suaDinhMuc, themNguyenCong, themSanPham, themBoPhan, xuLyPhieuLoi } from './actions'
 
 export const dynamic = 'force-dynamic'
 
-const DUOC_VAO = ['ENGINEER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR']
 
 const HUONG_XU_LY: Record<string, string> = {
   PENDING: 'Chưa quyết',
@@ -24,7 +24,7 @@ export default async function TrangKyThuat({
 }) {
   const u = await nguoiDangDangNhap()
   if (!u) redirect('/dang-nhap')
-  if (!DUOC_VAO.includes(u.role)) redirect('/')
+  if (!coQuyen(u.quyen, 'DINH_MUC')) redirect('/')
 
   const { tab, sp } = await searchParams
   const tabHienTai = tab === 'phieu-loi' ? 'phieu-loi' : 'dinh-muc'

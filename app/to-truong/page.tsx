@@ -3,17 +3,17 @@ import Link from 'next/link'
 import { nguoiDangDangNhap, TEN_VAI_TRO } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { ngayHomNay, ngayLamViec, gioHienTai, dinhDangNgay } from '@/lib/date'
+import { coQuyen } from '@/lib/chuc-nang'
 import { Header } from '@/components/Header'
 import { duyetBanGhi, tuChoiBanGhi } from './actions'
 
 export const dynamic = 'force-dynamic'
 
-const DUOC_VAO = ['TEAM_LEADER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR']
 
 export default async function TrangToTruong() {
   const u = await nguoiDangDangNhap()
   if (!u) redirect('/dang-nhap')
-  if (!DUOC_VAO.includes(u.role)) redirect('/')
+  if (!coQuyen(u.quyen, 'CHOT_SO')) redirect('/')
 
   const ymd = ngayHomNay()
   const workDate = ngayLamViec(ymd)

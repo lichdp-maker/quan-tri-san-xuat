@@ -2,12 +2,11 @@
 
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { batBuocDangNhap } from '@/lib/session'
+import { batBuocQuyen } from '@/lib/session'
 import { ngoaiPhamViTo } from '@/lib/quyen'
 import { ngayHomNay, ngayLamViec, dinhDangNgay } from '@/lib/date'
 import { kiemTraNgayXep } from '@/lib/ngay-xep'
-
-const QUAN_LY = ['TEAM_LEADER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'] as const
+import { conLamViec, vuongMac } from '@/lib/tinh-trang'
 
 export type KetQua = { ok?: boolean; loi?: string; chu?: string }
 
@@ -29,7 +28,7 @@ export async function taoDayChuyen(input: {
   loai?: 'CHUYEN' | 'BAN' | 'MAY'
   tang?: number
 }): Promise<KetQua> {
-  const u = await batBuocDangNhap('SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR')
+  const u = await batBuocQuyen('SAP_XEP_MAT_BANG')
 
   const code = input.code.trim().toUpperCase()
   const name = input.name.trim()
@@ -111,7 +110,7 @@ export async function taoDayChuyen(input: {
  * Tăng ghế thì thêm vào cho đủ hai mặt; giảm ghế chỉ xóa được những ghế chưa ai ngồi.
  */
 export async function doiDayChuyen(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap('SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR')
+  const u = await batBuocQuyen('SAP_XEP_MAT_BANG')
 
   const lineId = String(formData.get('lineId') ?? '')
   const name = String(formData.get('name') ?? '').trim()
@@ -167,7 +166,7 @@ export async function doiDayChuyen(formData: FormData): Promise<void> {
 
 /** Chọn lệnh sản xuất đang chạy trên dây chuyền và ca làm việc. */
 export async function datLenhChoDayChuyen(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...QUAN_LY)
+  const u = await batBuocQuyen('XEP_NHAN_SU')
 
   const lineId = String(formData.get('lineId') ?? '')
   const orderId = String(formData.get('orderId') ?? '')
@@ -191,7 +190,7 @@ export async function datLenhChoDayChuyen(formData: FormData): Promise<void> {
 
 /** Gán nguyên công cho một vị trí ngồi. */
 export async function ganNguyenCongChoGhe(seatId: string, operationId: string): Promise<KetQua> {
-  const u = await batBuocDangNhap(...QUAN_LY)
+  const u = await batBuocQuyen('XEP_NHAN_SU')
   if (!seatId) return { loi: 'Thiếu vị trí.' }
 
   const ghe = await prisma.seat.findUnique({
@@ -225,7 +224,7 @@ export async function ganNguoiVaoGhe(
   userId: string,
   ymd?: string,
 ): Promise<KetQua> {
-  const u = await batBuocDangNhap(...QUAN_LY)
+  const u = await batBuocQuyen('XEP_NHAN_SU')
 
   const homNay = ngayHomNay()
   const ngay = ymd || homNay
@@ -246,6 +245,9 @@ export async function ganNguoiVaoGhe(
 
   const cn = await prisma.user.findUnique({ where: { id: userId } })
   if (!cn || !cn.isActive || !cn.teamId) return { loi: 'Công nhân không hợp lệ hoặc chưa thuộc tổ nào.' }
+  if (!conLamViec(cn.tinhTrang)) {
+    return { loi: `${cn.fullName} ${vuongMac(cn.tinhTrang)}, không xếp vào chỗ được.` }
+  }
   if (u.role === 'TEAM_LEADER' && cn.teamId !== u.teamId) return { loi: 'Người này không thuộc tổ của bạn.' }
 
   const oo = await prisma.orderOperation.findUnique({
@@ -311,7 +313,7 @@ export async function ganNguoiVaoGhe(
 
 /** Gỡ người khỏi vị trí. Chỉ gỡ được khi người đó chưa nhập số liệu nào. */
 export async function goNguoiKhoiGhe(seatId: string, ymd?: string): Promise<KetQua> {
-  const u = await batBuocDangNhap(...QUAN_LY)
+  const u = await batBuocQuyen('XEP_NHAN_SU')
 
   const homNay = ngayHomNay()
   const ngay = ymd || homNay
@@ -359,7 +361,7 @@ export async function datNguyenCongChoChuyen(
   lineId: string,
   operationIds: string[],
 ): Promise<KetQua> {
-  const u = await batBuocDangNhap('ENGINEER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR')
+  const u = await batBuocQuyen('SAP_XEP_MAT_BANG')
   if (!lineId) return { loi: 'Thiếu dây chuyền.' }
 
   const line = await prisma.line.findUnique({ where: { id: lineId }, select: { id: true } })
@@ -404,7 +406,7 @@ export async function doiViTriChuyen(input: {
   cao?: number
   loai?: 'CHUYEN' | 'BAN' | 'MAY'
 }): Promise<KetQua> {
-  const u = await batBuocDangNhap('SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR')
+  const u = await batBuocQuyen('SAP_XEP_MAT_BANG')
   if (!input.lineId) return { loi: 'Thiếu dây chuyền.' }
 
   const trongKhoang = (v: number | undefined, min: number, max: number) =>
@@ -448,7 +450,7 @@ export async function chepPhanCong(input: {
   lineId?: string
   ghiDe?: boolean
 }): Promise<KetQua> {
-  const u = await batBuocDangNhap(...QUAN_LY)
+  const u = await batBuocQuyen('XEP_NHAN_SU')
 
   const homNay = ngayHomNay()
   const loiNgay = kiemTraNgayXep(input.denNgay, homNay)
@@ -490,7 +492,11 @@ export async function chepPhanCong(input: {
 
     const nguon = await prisma.assignment.findMany({
       where: { workDate: tu, seatId: { in: idGhe } },
-      select: { seatId: true, userId: true, user: { select: { isActive: true, teamId: true } } },
+      select: {
+        seatId: true,
+        userId: true,
+        user: { select: { isActive: true, teamId: true, tinhTrang: true } },
+      },
     })
     if (nguon.length === 0) continue
 
@@ -506,7 +512,8 @@ export async function chepPhanCong(input: {
         boQuaChuaCauHinh++
         continue
       }
-      if (!n.user.isActive || !n.user.teamId) continue
+      // Người đã nghỉ việc hoặc nghỉ dài hạn thì không chép sang ngày mới
+      if (!n.user.isActive || !n.user.teamId || !conLamViec(n.user.tinhTrang)) continue
       if (u.role === 'TEAM_LEADER' && n.user.teamId !== u.teamId) continue
 
       const cu = dangCo.get(n.seatId!)

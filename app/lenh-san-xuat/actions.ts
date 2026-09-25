@@ -2,9 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { batBuocDangNhap } from '@/lib/session'
-
-const DUOC_TAO = ['PLANNER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'] as const
+import { batBuocQuyen } from '@/lib/session'
 
 /**
  * Tạo lệnh sản xuất và sinh danh sách nguyên công của lệnh.
@@ -12,7 +10,7 @@ const DUOC_TAO = ['PLANNER', 'SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR'] as c
  * cũng không làm thay đổi cách tính năng suất của lệnh đang chạy.
  */
 export async function taoLenh(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...DUOC_TAO)
+  const u = await batBuocQuyen('QUAN_LY_LENH')
 
   const code = String(formData.get('code') ?? '').trim().toUpperCase()
   const productId = String(formData.get('productId') ?? '')
@@ -79,7 +77,7 @@ export async function taoLenh(formData: FormData): Promise<void> {
 }
 
 export async function doiTrangThai(formData: FormData): Promise<void> {
-  const u = await batBuocDangNhap(...DUOC_TAO)
+  const u = await batBuocQuyen('QUAN_LY_LENH')
   const id = String(formData.get('id') ?? '')
   const trangThai = String(formData.get('status') ?? '')
   if (!id || !['IN_PROGRESS', 'COMPLETED', 'CLOSED', 'CANCELLED'].includes(trangThai)) return

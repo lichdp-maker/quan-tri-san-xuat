@@ -30,7 +30,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="font-sans">
         {u ? (
           <div className="min-h-dvh lg:pl-64">
-            <Sidebar vaiTro={u.role} />
+            <Sidebar quyen={u.quyen} />
             {children}
           </div>
         ) : (

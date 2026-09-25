@@ -4,6 +4,7 @@ import { nguoiDangDangNhap, TEN_VAI_TRO } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { ngayHomNay, ngayLamViec, dinhDangNgay } from '@/lib/date'
 import { aggregate, qualityRate } from '@/lib/productivity'
+import { coQuyen } from '@/lib/chuc-nang'
 import { Header } from '@/components/Header'
 import {
   CotSanLuong,
@@ -18,7 +19,6 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-const DUOC_VAO = ['SHOP_MANAGER', 'DEPUTY_DIRECTOR', 'DIRECTOR', 'PLANNER', 'ENGINEER', 'WAREHOUSE']
 
 const KY: Record<string, { nhan: string; soNgay: number }> = {
   'hom-nay': { nhan: 'Hôm nay', soNgay: 1 },
@@ -34,7 +34,7 @@ export default async function TrangBangDieuKhien({
   const u = await nguoiDangDangNhap()
   if (!u) redirect('/dang-nhap')
   if (u.phaiDoiMatKhau) redirect('/doi-mat-khau')
-  if (!DUOC_VAO.includes(u.role)) redirect('/')
+  if (!coQuyen(u.quyen, 'XEM_TONG_HOP')) redirect('/')
 
   const { ky: kyChon } = await searchParams
   const ky = KY[kyChon ?? ''] ? (kyChon as string) : 'hom-nay'
