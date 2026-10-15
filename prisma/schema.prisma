@@ -54,6 +54,8 @@ model User {
   entriesCreated  ProductionEntry[] @relation("EntryCreatedBy")
   entriesApproved ProductionEntry[] @relation("EntryApprovedBy")
   auditLogs       AuditLog[]
+  yKienGui        YKien[]           @relation("YKienGui")
+  yKienXuLy       YKien[]           @relation("YKienXuLy")
 
   @@index([teamId, isActive])
   @@index([role])
@@ -132,6 +134,7 @@ model Operation {
   orderOperations OrderOperation[]
   seats           Seat[]
   lines           LineOperation[]
+  yKien           YKien[]
 
   @@unique([sectionId, seq])
   @@index([sectionId, isActive])
@@ -260,6 +263,7 @@ model Line {
 
   seats      Seat[]
   operations LineOperation[]
+  yKien      YKien[]
 
   @@index([tang, isActive])
 }
@@ -459,5 +463,43 @@ model AuditLog {
   createdAt  DateTime @default(now())
 
   @@index([entityType, entityId])
+  @@index([userId, createdAt])
+}
+
+// ============================================================
+// VƯỚNG MẮC & ĐỀ XUẤT CẢI TIẾN — công nhân gửi từ màn hình nhập sản lượng
+// ============================================================
+
+enum LoaiYKien {
+  VUONG_MAC // khó khăn đang gặp: thiếu vật tư, máy trục trặc, dụng cụ hỏng…
+  CAI_TIEN  // ý tưởng làm nhanh hơn, ít lỗi hơn, an toàn hơn
+}
+
+enum TrangThaiYKien {
+  MOI        // chưa ai xem
+  DANG_XU_LY // tổ trưởng / quản lý đã nhận
+  DA_XU_LY   // đã giải quyết hoặc đã trả lời
+}
+
+model YKien {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation("YKienGui", fields: [userId], references: [id])
+  loai        LoaiYKien
+  noiDung     String
+  workDate    DateTime       @db.Date
+  // Chụp lại chuyền và nguyên công lúc gửi để người xử lý biết chuyện xảy ra ở đâu
+  lineId      String?
+  line        Line?          @relation(fields: [lineId], references: [id])
+  operationId String?
+  operation   Operation?     @relation(fields: [operationId], references: [id])
+  trangThai   TrangThaiYKien @default(MOI)
+  phanHoi     String?
+  xuLyBoiId   String?
+  xuLyBoi     User?          @relation("YKienXuLy", fields: [xuLyBoiId], references: [id])
+  xuLyLuc     DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@index([trangThai, createdAt])
   @@index([userId, createdAt])
 }

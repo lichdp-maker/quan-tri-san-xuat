@@ -19,6 +19,7 @@ export type MaChucNang =
   | 'CHOT_SO'
   | 'NHAP_SAN_LUONG'
   | 'QUAN_LY_LENH'
+  | 'XU_LY_Y_KIEN'
   // Kỹ thuật
   | 'XEM_DONG_CHAY'
   | 'SUA_DONG_CHAY'
@@ -41,6 +42,7 @@ export const NHOM_CHUC_NANG: Array<{ nhom: string; muc: MucChucNang[] }> = [
       { ma: 'CHOT_SO', ten: 'Chốt số · duyệt sản lượng', moTa: 'Duyệt hoặc trả lại bản ghi công nhân nhập' },
       { ma: 'NHAP_SAN_LUONG', ten: 'Nhập sản lượng', moTa: 'Màn hình nhập số theo mốc giờ của công nhân' },
       { ma: 'QUAN_LY_LENH', ten: 'Quản lý lệnh sản xuất', moTa: 'Tạo, phát hành, theo dõi lệnh' },
+      { ma: 'XU_LY_Y_KIEN', ten: 'Xử lý vướng mắc · đề xuất', moTa: 'Xem, trả lời vướng mắc và đề xuất cải tiến của công nhân' },
     ],
   },
   {
@@ -70,7 +72,7 @@ export const TEN_CHUC_NANG: Record<MaChucNang, string> = Object.fromEntries(
 /** Bộ chức năng mặc định của từng vai trò. Quản trị vẫn chỉnh lại được cho từng người. */
 export const MAC_DINH: Record<Role, MaChucNang[]> = {
   WORKER: ['NHAP_SAN_LUONG'],
-  TEAM_LEADER: ['NHAP_SAN_LUONG', 'XEM_MAT_BANG', 'XEP_NHAN_SU', 'CHOT_SO', 'XEM_DONG_CHAY'],
+  TEAM_LEADER: ['NHAP_SAN_LUONG', 'XEM_MAT_BANG', 'XEP_NHAN_SU', 'CHOT_SO', 'XU_LY_Y_KIEN', 'XEM_DONG_CHAY'],
   ENGINEER: ['XEM_TONG_HOP', 'XEM_MAT_BANG', 'XEM_DONG_CHAY', 'SUA_DONG_CHAY', 'DINH_MUC'],
   WAREHOUSE: ['XEM_TONG_HOP', 'XEM_MAT_BANG'],
   PLANNER: ['XEM_TONG_HOP', 'XEM_MAT_BANG', 'QUAN_LY_LENH', 'XEM_DONG_CHAY'],

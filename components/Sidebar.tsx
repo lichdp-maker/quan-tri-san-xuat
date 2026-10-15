@@ -57,6 +57,12 @@ const NHOM: Nhom[] = [
         can: ['CHOT_SO'],
       },
       {
+        ten: 'Vướng mắc · Đề xuất',
+        href: '/y-kien',
+        icon: <IconPhieu className="h-5 w-5" />,
+        can: ['XU_LY_Y_KIEN'],
+      },
+      {
         ten: 'Lệnh sản xuất',
         href: '/lenh-san-xuat',
         icon: <IconPhieu className="h-5 w-5" />,

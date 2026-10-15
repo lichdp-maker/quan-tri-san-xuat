@@ -15,8 +15,20 @@ const Dong = z.object({
   downtimeMinutes: z.coerce.number().int().min(0).max(1440),
   downtimeReasonId: z.string().optional().nullable(),
   defectTypeId: z.string().optional().nullable(),
+  // Hỏng nhiều kiểu trong một mốc: mỗi mã lỗi một số lượng, cộng lại phải bằng qtyDefect
+  loi: z
+    .array(z.object({ defectTypeId: z.string().min(1), qty: z.coerce.number().int().min(1).max(100000) }))
+    .max(10)
+    .optional(),
   note: z.string().max(500).optional().nullable(),
 })
+
+/** Gom danh sách lỗi của một dòng: ưu tiên danh sách theo mã, không có thì dùng một mã cho cả số hỏng. */
+function loiCuaDong(d: z.infer<typeof Dong>): Array<{ defectTypeId: string; qty: number }> {
+  if (d.qtyDefect <= 0) return []
+  if (d.loi && d.loi.length > 0) return d.loi
+  return d.defectTypeId ? [{ defectTypeId: d.defectTypeId, qty: d.qtyDefect }] : []
+}
 
 const DuLieu = z.object({
   timeSlotId: z.string().min(1),
@@ -81,9 +93,21 @@ export async function luuSanLuong(duLieuJson: string): Promise<KetQuaLuu> {
     if (d.downtimeMinutes > d.workedMinutes) {
       return { loi: 'Thời gian dừng không được lớn hơn thời gian làm.' }
     }
-    if (d.qtyDefect > 0 && !d.defectTypeId) {
-      return { loi: 'Có sản phẩm hỏng thì phải chọn loại lỗi.' }
+    const loi = loiCuaDong(d)
+    if (d.qtyDefect > 0 && loi.length === 0) {
+      return { loi: 'Có sản phẩm hỏng thì phải chọn mã lỗi.' }
     }
+    const tongLoi = loi.reduce((a, x) => a + x.qty, 0)
+    if (d.qtyDefect > 0 && tongLoi !== d.qtyDefect) {
+      return { loi: `Tổng số theo mã lỗi (${tongLoi}) phải bằng số hỏng (${d.qtyDefect}).` }
+    }
+  }
+
+  // Mã lỗi gửi lên phải có thật và còn dùng
+  const maLoiGui = [...new Set(dong.flatMap((d) => loiCuaDong(d).map((x) => x.defectTypeId)))]
+  if (maLoiGui.length > 0) {
+    const coThat = await prisma.defectType.count({ where: { id: { in: maLoiGui }, isActive: true } })
+    if (coThat !== maLoiGui.length) return { loi: 'Có mã lỗi không còn dùng. Tải lại trang rồi chọn lại.' }
   }
 
   const canhBao: string[] = []
@@ -194,9 +218,10 @@ export async function luuSanLuong(duLieuJson: string): Promise<KetQuaLuu> {
       })
 
       await tx.defectRecord.deleteMany({ where: { entryId: entry.id } })
-      if (d.qtyDefect > 0 && d.defectTypeId) {
-        await tx.defectRecord.create({
-          data: { entryId: entry.id, defectTypeId: d.defectTypeId, qty: d.qtyDefect },
+      const dsLoi = loiCuaDong(d)
+      if (dsLoi.length > 0) {
+        await tx.defectRecord.createMany({
+          data: dsLoi.map((x) => ({ entryId: entry.id, defectTypeId: x.defectTypeId, qty: x.qty })),
         })
       }
 
@@ -218,4 +243,59 @@ export async function luuSanLuong(duLieuJson: string): Promise<KetQuaLuu> {
 
   revalidatePath('/cong-nhan')
   return { ok: true, canhBao: canhBao.length ? canhBao : undefined }
+}
+
+// ===================== VƯỚNG MẮC & ĐỀ XUẤT CẢI TIẾN =====================
+
+const YKienVao = z.object({
+  loai: z.enum(['VUONG_MAC', 'CAI_TIEN']),
+  noiDung: z.string().trim().min(5, 'Viết ít nhất vài chữ để người xử lý hiểu.').max(1000, 'Tối đa 1000 ký tự.'),
+  assignmentId: z.string().optional().nullable(),
+})
+
+const TOI_DA_MOI_NGAY = 20
+
+/** Công nhân gửi vướng mắc hoặc đề xuất cải tiến. Gắn kèm chuyền và nguyên công đang làm. */
+export async function guiYKien(vao: {
+  loai: string
+  noiDung: string
+  assignmentId?: string | null
+}): Promise<{ ok?: boolean; loi?: string }> {
+  const u = await batBuocQuyen('NHAP_SAN_LUONG')
+
+  const kq = YKienVao.safeParse(vao)
+  if (!kq.success) return { loi: kq.error.issues[0]?.message ?? 'Nội dung không hợp lệ.' }
+  const { loai, noiDung, assignmentId } = kq.data
+
+  const ymd = ngayHomNay()
+  const workDate = ngayLamViec(ymd)
+
+  const daGui = await prisma.yKien.count({ where: { userId: u.id, workDate } })
+  if (daGui >= TOI_DA_MOI_NGAY) {
+    return { loi: `Hôm nay bạn đã gửi ${daGui} ý kiến. Gặp trực tiếp tổ trưởng nếu còn việc gấp.` }
+  }
+
+  // Chỉ lấy chuyền / nguyên công từ phân công của CHÍNH người gửi
+  let lineId: string | null = null
+  let operationId: string | null = null
+  if (assignmentId) {
+    const a = await prisma.assignment.findFirst({
+      where: { id: assignmentId, userId: u.id },
+      select: { seat: { select: { lineId: true } }, orderOperation: { select: { operationId: true } } },
+    })
+    lineId = a?.seat?.lineId ?? null
+    operationId = a?.orderOperation.operationId ?? null
+  }
+
+  const yk = await prisma.yKien.create({
+    data: { userId: u.id, loai, noiDung, workDate, lineId, operationId },
+  })
+
+  await prisma.auditLog.create({
+    data: { userId: u.id, action: 'GUI_Y_KIEN', entityType: 'YKien', entityId: yk.id, after: { loai } },
+  })
+
+  revalidatePath('/cong-nhan')
+  revalidatePath('/y-kien')
+  return { ok: true }
 }
