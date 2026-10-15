@@ -54,7 +54,6 @@ export type CongNhan = {
 
 export type NguyenCong = { id: string; ten: string; boPhan: string; giay: number }
 
-export type ChuyenNgan = { id: string; ten: string; daXep: number; tong: number; coLenh: boolean }
 
 type Cam =
   | { loai: 'nguoi'; id: string; ten: string }
@@ -102,8 +101,6 @@ export default function BanXepCho({
   nguyenCongs,
   toMacDinh,
   homTruoc,
-  chuyens,
-  oThemChuyen,
   caiDat,
 }: {
   ymd: string
@@ -120,8 +117,6 @@ export default function BanXepCho({
   nguyenCongs: NguyenCong[]
   toMacDinh: string | null
   homTruoc: { ymd: string; soNguoi: number } | null
-  chuyens: ChuyenNgan[]
-  oThemChuyen: React.ReactNode
   caiDat: Omit<ComponentProps<typeof ThietLapChuyen>, 'tab' | 'setTab'>
 }) {
   const router = useRouter()
@@ -386,9 +381,14 @@ export default function BanXepCho({
 
   return (
     <div className="pb-28 lg:pb-0">
-      {/* ================= THANH TRÊN: NGÀY + CHUYỀN ================= */}
+      {/* ================= THANH TRÊN: QUAY LẠI + TÊN CHUYỀN + NGÀY ================= */}
       <div className="the mb-3 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
+          <Link href={`/day-chuyen?ngay=${ymd}`} className="nut-phu shrink-0">
+            ← Tất cả chuyền
+          </Link>
+          <h2 className="min-w-0 flex-1 truncate text-lg font-bold leading-tight">{tenChuyen}</h2>
+
           <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50">
             <button
               onClick={() => diNgay(themNgay(ymd, -1))}
@@ -427,34 +427,9 @@ export default function BanXepCho({
           )}
           {lech !== 1 && (
             <button onClick={() => diNgay(themNgay(homNay, 1))} className="chip-tat">
-              Xếp cho ngày mai
+              Ngày mai
             </button>
           )}
-
-          <span className="mx-1 hidden h-8 w-px bg-slate-200 md:block" />
-
-          <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-0.5">
-            {chuyens.map((c) => (
-              <Link
-                key={c.id}
-                href={`/day-chuyen?dc=${c.id}&ngay=${ymd}`}
-                className={`${c.id === lineId ? 'chip-bat' : 'chip-tat'} shrink-0`}
-                title={c.coLenh ? undefined : 'Chưa chọn lệnh'}
-              >
-                <span
-                  aria-hidden
-                  className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle ${
-                    c.coLenh ? (c.id === lineId ? 'bg-white' : 'bg-emerald-500') : 'bg-amber-400'
-                  }`}
-                />
-                {c.ten}
-                <span className="ml-1.5 opacity-70">
-                  {c.daXep}/{c.tong}
-                </span>
-              </Link>
-            ))}
-          </div>
-          {oThemChuyen}
         </div>
 
         {/* Lệnh đang chạy */}
@@ -462,7 +437,7 @@ export default function BanXepCho({
           {dongLenh ? (
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold leading-tight">
-                {tenChuyen} <span className="font-normal text-slate-400">·</span> {dongLenh.sanPham}
+                {dongLenh.sanPham}
               </p>
               <div className="mt-1 flex items-center gap-2">
                 <span className="h-1.5 w-28 overflow-hidden rounded-full bg-slate-200">
@@ -473,7 +448,7 @@ export default function BanXepCho({
             </div>
           ) : (
             <p className="min-w-0 flex-1 text-sm text-amber-800">
-              <strong>{tenChuyen}</strong> chưa chọn lệnh sản xuất hoặc ca — chưa xếp người được.
+              Chuyền chưa chọn lệnh sản xuất hoặc ca — chưa xếp người được.
             </p>
           )}
           <button

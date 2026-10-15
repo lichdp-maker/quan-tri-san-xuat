@@ -7,6 +7,7 @@ import { laNgayHopLe, cachNgay, themNgay } from '@/lib/ngay-xep'
 import { coQuyen } from '@/lib/chuc-nang'
 import BanXepCho from './BanXepCho'
 import ThemDayChuyen from './ThemDayChuyen'
+import TongQuanChuyen from './TongQuanChuyen'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,18 +54,14 @@ export default async function TrangDayChuyen({
     // Ai đang ngồi ở đâu trong ngày — trên MỌI chuyền, để biết người nào đã có việc nơi khác
     prisma.assignment.findMany({
       where: { workDate, seatId: { not: null } },
-      select: { userId: true, seat: { select: { lineId: true, side: true, seq: true } } },
+      select: { userId: true, seatId: true, seat: { select: { lineId: true, side: true, seq: true } } },
     }),
   ])
 
-  // Tổ trưởng mở trang thì vào thẳng chuyền của tổ mình
-  const line =
-    lines.find((l) => l.id === dc) ??
-    (laToTruong ? lines.find((l) => l.teamId === u.teamId) : undefined) ??
-    lines[0] ??
-    null
+  // Có ?dc= thì mở bàn xếp của chuyền đó (lớp 2); không có thì xem tổng quan mọi chuyền (lớp 1)
+  const line = dc ? (lines.find((l) => l.id === dc) ?? null) : null
 
-  if (!line) {
+  if (lines.length === 0) {
     return (
       <main className="mx-auto w-full max-w-7xl px-4 py-5">
         <Header tieuDe="Sơ đồ sắp xếp nhân sự" phu={`${u.fullName} · ${TEN_VAI_TRO[u.role]}`} nguoiDung={u} />
@@ -80,6 +77,82 @@ export default async function TrangDayChuyen({
   }
 
   const homTruocYmd = themNgay(ymd, -1)
+
+  // ===================== LỚP 1: TỔNG QUAN MỌI CHUYỀN =====================
+  if (!line) {
+    const [moiGhe, xepHomTruoc, nguoiTrongPhamVi] = await Promise.all([
+      prisma.seat.findMany({
+        where: { line: { isActive: true } },
+        select: { id: true, lineId: true, side: true, operationId: true },
+        orderBy: [{ side: 'asc' }, { seq: 'asc' }],
+      }),
+      prisma.assignment.findMany({
+        where: { workDate: ngayLamViec(homTruocYmd), seatId: { not: null } },
+        select: { seat: { select: { lineId: true } } },
+      }),
+      prisma.user.findMany({
+        where: {
+          isActive: true,
+          role: { in: ['WORKER', 'TEAM_LEADER'] },
+          tinhTrang: { in: ['DANG_LAM', 'TANG_CUONG', 'MUA_VU'] },
+          ...(laToTruong ? { teamId: u.teamId ?? '' } : {}),
+        },
+        select: { id: true },
+      }),
+    ])
+
+    const choCoNguoi = new Set(xepTrongNgay.map((x) => x.seatId))
+    const nguoiCoCho = new Set(xepTrongNgay.map((x) => x.userId))
+    const demHomTruoc = new Map<string, number>()
+    for (const x of xepHomTruoc) {
+      demHomTruoc.set(x.seat!.lineId, (demHomTruoc.get(x.seat!.lineId) ?? 0) + 1)
+    }
+
+    const theChuyen = lines.map((l) => {
+      const ghe = moiGhe.filter((g) => g.lineId === l.id)
+      const coNguoi = ghe.filter((g) => choCoNguoi.has(g.id)).length
+      return {
+        id: l.id,
+        ten: l.name,
+        loai: l.loai,
+        tang: l.tang,
+        to: l.team?.name ?? null,
+        laCuaToi: laToTruong && !!u.teamId && l.teamId === u.teamId,
+        tongCho: ghe.length,
+        coNguoi,
+        choTrong: ghe.filter((g) => g.operationId && !choCoNguoi.has(g.id)).length,
+        chuaNC: ghe.filter((g) => !g.operationId).length,
+        coLenh: !!l.currentOrderId && !!l.shiftId,
+        lenh: l.currentOrder ? `${l.currentOrder.code} · ${l.currentOrder.product.name}` : null,
+        ca: l.shift?.name ?? null,
+        ghe: ghe.map((g) => ({ mat: g.side as 'A' | 'B', coNguoi: choCoNguoi.has(g.id), coNC: !!g.operationId })),
+        homTruoc: demHomTruoc.get(l.id) ?? 0,
+      }
+    })
+
+    return (
+      <main className="mx-auto w-full max-w-7xl px-4 py-5">
+        <Header
+          tieuDe="Sơ đồ sắp xếp nhân sự"
+          phu={`${u.fullName} · ${TEN_VAI_TRO[u.role]} · chọn một chuyền để xếp`}
+          nguoiDung={u}
+        />
+        <TongQuanChuyen
+          ymd={ymd}
+          homNay={homNay}
+          chiXem={chiXem}
+          chuyens={theChuyen}
+          tongCongNhan={nguoiTrongPhamVi.length}
+          tongChuaCoCho={nguoiTrongPhamVi.filter((n) => !nguoiCoCho.has(n.id)).length}
+          oThemChuyen={
+            laQuanLy ? <ThemDayChuyen tos={tos} daCo={lines.flatMap((l) => [l.code, l.name])} /> : null
+          }
+        />
+      </main>
+    )
+  }
+
+  // ===================== LỚP 2: BÀN XẾP CỦA MỘT CHUYỀN =====================
 
   const [ghe, nguyenCongs, ncCuaChuyen, moiNguyenCong, congNhan, soHomTruoc] = await Promise.all([
     prisma.seat.findMany({
@@ -131,10 +204,8 @@ export default async function TrangDayChuyen({
   // Chỗ mỗi người đang giữ ở CHUYỀN KHÁC trong ngày
   const tenChuyen = new Map(lines.map((l) => [l.id, l.name]))
   const noiKhac = new Map<string, string[]>()
-  const demTheoChuyen = new Map<string, number>()
   for (const x of xepTrongNgay) {
     const s = x.seat!
-    demTheoChuyen.set(s.lineId, (demTheoChuyen.get(s.lineId) ?? 0) + 1)
     if (s.lineId === line.id) continue
     const nhan = `${tenChuyen.get(s.lineId) ?? '?'} ${s.side}${s.seq}`
     noiKhac.set(x.userId, [...(noiKhac.get(x.userId) ?? []), nhan])
@@ -202,16 +273,6 @@ export default async function TrangDayChuyen({
           }))}
         toMacDinh={line.team?.name ?? null}
         homTruoc={{ ymd: homTruocYmd, soNguoi: soHomTruoc }}
-        chuyens={lines.map((l) => ({
-          id: l.id,
-          ten: l.name,
-          daXep: demTheoChuyen.get(l.id) ?? 0,
-          tong: l._count.seats,
-          coLenh: !!l.currentOrderId && !!l.shiftId,
-        }))}
-        oThemChuyen={
-          laQuanLy ? <ThemDayChuyen tos={tos} daCo={lines.flatMap((l) => [l.code, l.name])} /> : null
-        }
         caiDat={{
           line: {
             id: line.id,
