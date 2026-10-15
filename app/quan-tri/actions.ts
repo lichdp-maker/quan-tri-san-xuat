@@ -463,7 +463,7 @@ export async function luuNhanSu(input: {
 
   // Chặn leo thang quyền — quy tắc nằm trong lib/quyen.ts và có test riêng
   const duoc = duocSuaNguoiDung(u, { id: input.id, role: mucTieu.role }, { role, isActive })
-  if (!duoc.ok) return { loi: duoc.loi ?? 'Bạn không sửa được người này.' }
+  if (!duoc.ok) return { loi: duoc.lyDo }
 
   const { them, bot } = tachThemBot(role, input.chucNang)
 
