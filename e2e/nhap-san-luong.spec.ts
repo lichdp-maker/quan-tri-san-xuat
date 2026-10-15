@@ -82,22 +82,18 @@ test.describe('Sơ đồ sắp xếp nhân sự', () => {
     await page.goto('/day-chuyen')
 
     await expect(page).toHaveURL(/\/day-chuyen/)
-    await expect(page.locator('body')).toContainText(/Sơ đồ chỗ ngồi/i)
+    await expect(page.locator('body')).toContainText(/Chưa có chỗ|có người/i)
   })
 
-  test('sơ đồ không tràn ngang trên điện thoại ở chế độ lưới gọn', async ({ page, isMobile }) => {
+  test('bàn xếp không tràn ngang trên điện thoại', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'Chỉ kiểm trên bản điện thoại')
 
     await dangNhap(page, TT.ma, TT.mk)
     await page.goto('/day-chuyen')
 
-    const nutLuoi = page.locator('button:text("Lưới gọn")')
-    if ((await nutLuoi.count()) > 0) {
-      await nutLuoi.click()
-      const tran = await page.evaluate(
-        () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2,
-      )
-      expect(tran).toBe(false)
-    }
+    const tran = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2,
+    )
+    expect(tran).toBe(false)
   })
 })

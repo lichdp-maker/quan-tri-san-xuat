@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useTransition } from 'react'
 import { datLenhChoDayChuyen, doiDayChuyen } from './actions'
 import NguyenCongCuaChuyen from './NguyenCongCuaChuyen'
 
@@ -27,46 +27,35 @@ export type DangChay = {
   soNguyenCongLenh: number
 }
 
-type Tab = 'lenh' | 'nguyencong' | 'chuyen'
+export type Tab = 'lenh' | 'nguyencong' | 'chuyen'
 
-const TEN_LOAI: Record<string, string> = { CHUYEN: 'Băng chuyền', BAN: 'Dãy bàn', MAY: 'Máy' }
 
+/**
+ * Bảng cài đặt chuyền (lệnh & ca, nguyên công, thông tin chuyền).
+ * Chỉ là hộp thoại — trang xếp chỗ tự quyết khi nào mở và mở ở tab nào.
+ */
 export default function ThietLapChuyen({
   line,
   lenhs,
   cas,
   tos,
-  dangChay,
-  tenCa,
   ncTatCa,
   ncDangChon,
-  daXep,
-  tongGhe,
   duocSuaChuyen,
+  tab,
+  setTab,
 }: {
   line: { id: string; ten: string; ma: string; soGhe: number; teamId: string | null; loai: string; orderId: string | null; shiftId: string | null }
   lenhs: LenhChon[]
   cas: Chon[]
   tos: Chon[]
-  dangChay: DangChay | null
-  tenCa: string | null
   ncTatCa: NC[]
   ncDangChon: string[]
-  daXep: number
-  tongGhe: number
   duocSuaChuyen: boolean
+  tab: Tab | null
+  setTab: (t: Tab | null) => void
 }) {
-  const [tab, setTab] = useState<Tab | null>(null)
   const [dangLuu, batDau] = useTransition()
-
-  const xongLenh = !!line.orderId && !!line.shiftId
-  const xongNC = ncDangChon.length > 0
-  const xongXep = daXep > 0 && daXep >= tongGhe
-
-  const pt =
-    dangChay && dangChay.soLuong > 0
-      ? Math.min(100, Math.round((dangChay.xong / dangChay.soLuong) * 100))
-      : 0
 
   function luu(fd: FormData, viec: () => Promise<void>) {
     batDau(async () => {
@@ -77,91 +66,6 @@ export default function ThietLapChuyen({
 
   return (
     <>
-      {/* ---------- Thẻ tóm tắt chuyền ---------- */}
-      <section className="the mb-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="truncate text-lg font-bold leading-tight">{line.ten}</h2>
-            <p className="mt-0.5 text-xs text-slate-500">
-              {TEN_LOAI[line.loai] ?? line.loai} · {tongGhe} chỗ · mã {line.ma}
-            </p>
-          </div>
-          <button onClick={() => setTab('lenh')} className="nut-phu shrink-0">
-            ⚙ Cài đặt chuyền
-          </button>
-        </div>
-
-        {/* Lệnh đang chạy */}
-        {dangChay ? (
-          <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <p className="min-w-0">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                  Đang sản xuất
-                </span>
-                <span className="block truncate font-semibold leading-tight">
-                  {dangChay.sanPham}
-                </span>
-                <span className="text-xs text-slate-500">
-                  Lệnh {dangChay.ma} · {dangChay.maSanPham} · {dangChay.soNguyenCongLenh} nguyên
-                  công{tenCa ? ` · ${tenCa}` : ''}
-                </span>
-              </p>
-              <p className="shrink-0 text-sm tabular-nums text-slate-700">
-                <strong>{dangChay.xong.toLocaleString('vi-VN')}</strong>
-                <span className="text-slate-400">
-                  {' '}
-                  / {dangChay.soLuong.toLocaleString('vi-VN')} {dangChay.donVi}
-                </span>
-                <span className="ml-2 text-slate-500">còn {(dangChay.soLuong - dangChay.xong).toLocaleString('vi-VN')}</span>
-              </p>
-            </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
-              <div className="h-full rounded-full bg-brand-600" style={{ width: `${pt}%` }} />
-            </div>
-          </div>
-        ) : (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-            <p className="text-sm text-amber-900">
-              <strong>Chưa chọn lệnh sản xuất.</strong> Chọn lệnh thì mới có nguyên công để gán cho
-              từng chỗ ngồi.
-            </p>
-            <button onClick={() => setTab('lenh')} className="nut-nho shrink-0">
-              Chọn lệnh
-            </button>
-          </div>
-        )}
-
-        {/* Ba bước thao tác */}
-        <ol className="mt-3 grid gap-2 sm:grid-cols-3">
-          <Buoc
-            so={1}
-            ten="Lệnh và ca"
-            phu={xongLenh ? `${dangChay?.ma ?? ''} · ${tenCa ?? ''}` : 'chưa chọn'}
-            xong={xongLenh}
-            bam={() => setTab('lenh')}
-          />
-          <Buoc
-            so={2}
-            ten="Nguyên công của chuyền"
-            phu={
-              xongNC
-                ? `${ncDangChon.length} nguyên công`
-                : 'chưa giới hạn — hiện mọi nguyên công của lệnh'
-            }
-            xong={xongNC}
-            bam={duocSuaChuyen ? () => setTab('nguyencong') : undefined}
-          />
-          <Buoc
-            so={3}
-            ten="Xếp người vào chỗ"
-            phu={`${daXep}/${tongGhe} chỗ đã có người`}
-            xong={xongXep}
-            href="#so-do-cho-ngoi"
-          />
-        </ol>
-      </section>
-
       {/* ---------- Bảng cài đặt ---------- */}
       {tab && (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
@@ -327,59 +231,5 @@ function TabNut({
     <button onClick={bam} className={dang ? 'chip-bat shrink-0' : 'chip-tat shrink-0'}>
       {children}
     </button>
-  )
-}
-
-function Buoc({
-  so,
-  ten,
-  phu,
-  xong,
-  bam,
-  href,
-}: {
-  so: number
-  ten: string
-  phu: string
-  xong: boolean
-  bam?: () => void
-  href?: string
-}) {
-  const bamDuoc = !!bam || !!href
-  const noiDung = (
-    <>
-      <span
-        className={[
-          'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold',
-          xong ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600',
-        ].join(' ')}
-      >
-        {xong ? '✓' : so}
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-medium leading-tight">{ten}</span>
-        <span className="block truncate text-xs text-slate-500">{phu}</span>
-      </span>
-    </>
-  )
-  const lop =
-    'flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition ' +
-    (xong ? 'border-emerald-200 bg-emerald-50/60' : 'border-slate-200 bg-white') +
-    (bamDuoc ? ' hover:border-brand-400 hover:bg-brand-50/50' : '')
-
-  return (
-    <li className="min-w-0">
-      {href ? (
-        <a href={href} className={lop}>
-          {noiDung}
-        </a>
-      ) : bam ? (
-        <button onClick={bam} className={lop}>
-          {noiDung}
-        </button>
-      ) : (
-        <div className={lop}>{noiDung}</div>
-      )}
-    </li>
   )
 }
