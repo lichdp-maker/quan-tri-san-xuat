@@ -674,7 +674,7 @@ export default function BanXepCho({
         {/* ----- Sơ đồ chuyền ----- */}
         <section className="min-w-0">
           {cam && (
-            <div className="sticky top-2 z-20 mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-brand-600 px-4 py-2.5 text-white shadow-[0_12px_28px_-12px_rgba(37,99,235,0.95)]">
+            <div className="sticky top-[calc(4rem+env(safe-area-inset-top))] z-20 mb-3 flex lg:top-2 flex-wrap items-center justify-between gap-2 rounded-2xl bg-brand-600 px-4 py-2.5 text-white shadow-[0_12px_28px_-12px_rgba(37,99,235,0.95)]">
               <p className="min-w-0 text-sm">
                 {cam.loai === 'nguoi' && (
                   <>

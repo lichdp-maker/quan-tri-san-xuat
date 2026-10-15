@@ -435,12 +435,30 @@ function ChonMaLoi({
   const k = khongDau(tim.trim())
   const hien = loaiLoi.filter((l) => !k || khongDau(l.ma).includes(k) || khongDau(l.ten).includes(k))
   const nhom = [...new Set(hien.map((l) => l.nhom))]
+  const theoId = new Map(loaiLoi.map((l) => [l.id, l]))
 
   function bat(id: string) {
     const moi = { ...loi }
-    if (moi[id] !== undefined) delete moi[id]
-    else moi[id] = Object.keys(moi).length === 0 ? String(hong) : ''
+    if (moi[id] !== undefined) {
+      delete moi[id]
+      // Còn đúng 1 mã thì mã đó nhận toàn bộ số hỏng
+      const con = Object.keys(moi)
+      if (con.length === 1) moi[con[0]] = String(hong)
+    } else {
+      const truoc = Object.keys(moi)
+      // Mã đầu tiên nhận hết; mã thứ hai trở đi nhận phần còn thiếu (nếu có)
+      if (truoc.length === 0) moi[id] = String(hong)
+      else {
+        const daCo = truoc.reduce((t, x) => t + (Number(moi[x]) || 0), 0)
+        moi[id] = hong - daCo > 0 ? String(hong - daCo) : ''
+      }
+    }
     doi(moi)
+  }
+
+  function chinh(id: string, delta: number) {
+    const v = Math.max(0, (Number(loi[id]) || 0) + delta)
+    doi({ ...loi, [id]: String(v) })
   }
 
   const conThieu = hong - daChia
@@ -448,9 +466,9 @@ function ChonMaLoi({
   return (
     <div className="rounded-xl border-2 border-red-100 bg-red-50/40 p-3">
       <div className="mb-2 flex items-baseline justify-between gap-2">
-        <p className="font-semibold text-slate-800">Mã lỗi</p>
+        <p className="font-semibold text-slate-800">Chọn mã lỗi</p>
         {chon.length === 0 ? (
-          <p className="text-sm font-medium text-red-600">Chọn ít nhất 1 mã</p>
+          <p className="text-sm font-medium text-red-600">Chạm vào lỗi gặp phải</p>
         ) : chon.length > 1 && conThieu !== 0 ? (
           <p className="text-sm font-medium text-red-600">
             {conThieu > 0 ? `Còn ${conThieu} chưa chia` : `Thừa ${-conThieu}`}
@@ -460,58 +478,55 @@ function ChonMaLoi({
         )}
       </div>
 
-      {loaiLoi.length > 8 && (
+      {loaiLoi.length > 12 && (
         <input
           value={tim}
           onChange={(e) => setTim(e.target.value)}
           placeholder="Tìm mã hoặc tên lỗi…"
-          className="o-nhap mb-2 w-full py-2.5 text-base"
+          className="o-nhap mb-3 w-full py-2.5 text-base"
+          enterKeyHint="search"
         />
       )}
 
-      <div className="flex max-h-72 flex-col gap-3 overflow-y-auto">
+      <div className="flex flex-col gap-3">
         {nhom.map((n) => (
           <div key={n}>
             {nhom.length > 1 && (
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">{n}</p>
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">{n}</p>
             )}
-            <div className="flex flex-col gap-1.5">
+            <div className="grid grid-cols-2 gap-2 min-[480px]:grid-cols-3">
               {hien
                 .filter((l) => l.nhom === n)
                 .map((l) => {
                   const dangChon = loi[l.id] !== undefined
+                  const sl = Number(loi[l.id]) || 0
                   return (
-                    <div key={l.id} className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => bat(l.id)}
-                        className={[
-                          'flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-xl border-2 px-3 text-left',
-                          dangChon ? 'border-red-500 bg-white' : 'border-slate-200 bg-white',
-                        ].join(' ')}
+                    <button
+                      key={l.id}
+                      type="button"
+                      onClick={() => bat(l.id)}
+                      aria-pressed={dangChon}
+                      className={[
+                        'relative flex min-h-[4.75rem] flex-col items-start justify-start gap-1 rounded-xl border-2 p-2.5 text-left transition active:scale-[0.98]',
+                        dangChon
+                          ? 'border-red-600 bg-red-600 text-white shadow-[0_8px_18px_-10px_rgba(220,38,38,0.9)]'
+                          : 'border-slate-200 bg-white text-slate-800',
+                      ].join(' ')}
+                    >
+                      <span
+                        className={`max-w-full truncate rounded-md px-1.5 py-0.5 font-mono text-xs font-bold ${
+                          dangChon ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
+                        }`}
                       >
-                        <span
-                          className={`shrink-0 rounded-md px-1.5 py-0.5 font-mono text-sm font-bold ${
-                            dangChon ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-700'
-                          }`}
-                        >
-                          {l.ma}
+                        {l.ma}
+                      </span>
+                      <span className="line-clamp-2 text-sm font-medium leading-snug">{l.ten}</span>
+                      {dangChon && (
+                        <span className="absolute -right-1.5 -top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1.5 text-xs font-bold tabular-nums text-red-600 shadow ring-2 ring-red-600">
+                          {sl > 0 ? sl : '✓'}
                         </span>
-                        <span className="min-w-0 flex-1 text-base leading-tight text-slate-800">{l.ten}</span>
-                        {dangChon && <span className="shrink-0 text-lg text-red-600">✓</span>}
-                      </button>
-                      {dangChon && chon.length > 1 && (
-                        <input
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={loi[l.id]}
-                          onChange={(e) => doi({ ...loi, [l.id]: chiSo(e.target.value) })}
-                          placeholder="SL"
-                          aria-label={`Số lượng lỗi ${l.ma}`}
-                          className="h-12 w-16 shrink-0 rounded-xl border-2 border-red-200 bg-white text-center text-lg font-semibold tabular-nums"
-                        />
                       )}
-                    </div>
+                    </button>
                   )
                 })}
             </div>
@@ -519,8 +534,50 @@ function ChonMaLoi({
         ))}
         {hien.length === 0 && <p className="text-sm text-slate-500">Không có mã lỗi nào khớp “{tim}”.</p>}
       </div>
+
       {chon.length > 1 && (
-        <p className="mt-2 text-xs text-slate-600">Nhiều loại lỗi: nhập số lượng cho từng mã, cộng lại đủ {hong}.</p>
+        <div className="mt-3 rounded-xl bg-white p-2.5">
+          <p className="mb-2 text-sm font-semibold text-slate-700">Chia số hỏng cho từng lỗi (tổng {hong})</p>
+          <ul className="flex flex-col gap-2">
+            {chon.map((id) => {
+              const l = theoId.get(id)
+              if (!l) return null
+              return (
+                <li key={id} className="flex items-center gap-2">
+                  <span className="shrink-0 rounded-md bg-red-600 px-1.5 py-0.5 font-mono text-xs font-bold text-white">
+                    {l.ma}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm text-slate-700">{l.ten}</span>
+                  <button
+                    type="button"
+                    onClick={() => chinh(id, -1)}
+                    aria-label={`Bớt 1 lỗi ${l.ma}`}
+                    className="h-11 w-11 shrink-0 rounded-lg bg-slate-100 text-xl font-bold text-slate-700"
+                  >
+                    −
+                  </button>
+                  <input
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={loi[id]}
+                    onChange={(e) => doi({ ...loi, [id]: chiSo(e.target.value) })}
+                    placeholder="0"
+                    aria-label={`Số lượng lỗi ${l.ma}`}
+                    className="h-11 w-14 shrink-0 rounded-lg border-2 border-red-200 bg-white text-center text-lg font-semibold tabular-nums"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => chinh(id, 1)}
+                    aria-label={`Thêm 1 lỗi ${l.ma}`}
+                    className="h-11 w-11 shrink-0 rounded-lg bg-slate-100 text-xl font-bold text-slate-700"
+                  >
+                    +
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       )}
     </div>
   )

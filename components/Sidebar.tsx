@@ -116,6 +116,10 @@ export function Sidebar({ quyen }: { quyen: readonly string[] }) {
   })).filter((n) => n.muc.length > 0)
 
   const dangO = (href: string) => duong === href || duong.startsWith(href + '/')
+  const trangHienTai = nhom
+    .flatMap((n) => n.muc)
+    .filter((m) => dangO(m.href))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.ten
 
   const danhSach = (
     <nav className="flex flex-col gap-6">
@@ -165,16 +169,24 @@ export function Sidebar({ quyen }: { quyen: readonly string[] }) {
         {danhSach}
       </aside>
 
-      {/* Điện thoại: nút mở menu + lớp phủ trượt ra */}
-      <button
-        onClick={() => setMo(true)}
-        aria-label="Mở menu"
-        className="fixed bottom-5 right-5 z-30 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-[0_12px_28px_-8px_rgba(37,99,235,0.9)] lg:hidden"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-6 w-6">
-          <path d="M4 7h16M4 12h16M4 17h16" />
-        </svg>
-      </button>
+      {/* Điện thoại: thanh trên cùng có nút menu — không đè lên nút Lưu ở đáy màn hình */}
+      <div className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/90 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
+        <div className="flex h-14 items-center gap-2 px-2">
+          <button
+            onClick={() => setMo(true)}
+            aria-label="Mở menu"
+            aria-expanded={mo}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-700 active:bg-slate-100"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-6 w-6">
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          </button>
+          <span className="min-w-0 flex-1 truncate text-base font-semibold text-slate-900">
+            {trangHienTai ?? 'Nhà máy thông minh EMIC'}
+          </span>
+        </div>
+      </div>
 
       {mo && (
         <div className="fixed inset-0 z-40 lg:hidden">
