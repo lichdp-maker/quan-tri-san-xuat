@@ -20,3 +20,6 @@ test-results/
 
 # Bộ cài ECC đặt tại máy, không thuộc mã nguồn web
 .claude/
+
+# Ban chup cau hinh chuyen khi chay du lieu thu (npm run db:thu) — chi dung tai may
+prisma/.thu-nghiem.json
