@@ -3,18 +3,16 @@ import { nguoiDangDangNhap, TEN_VAI_TRO } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { coQuyen } from '@/lib/chuc-nang'
 import { Header } from '@/components/Header'
-import { taoLenh, doiTrangThai } from './actions'
+import { ngayHomNay } from '@/lib/date'
+import { cachNgay } from '@/lib/ngay-xep'
+import { taoLenh } from './actions'
+import LuoiLenh from './LuoiLenh'
 
 export const dynamic = 'force-dynamic'
 
-
-const TEN_TRANG_THAI: Record<string, string> = {
-  DRAFT: 'Nháp',
-  RELEASED: 'Đã phát hành',
-  IN_PROGRESS: 'Đang chạy',
-  COMPLETED: 'Đã xong',
-  CLOSED: 'Đã đóng',
-  CANCELLED: 'Đã huỷ',
+/** Ngày theo giờ Việt Nam, dạng YYYY-MM-DD. */
+function ymdVN(d: Date): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(d)
 }
 
 export default async function TrangLenhSanXuat() {
@@ -27,22 +25,27 @@ export default async function TrangLenhSanXuat() {
     prisma.productionOrder.findMany({
       include: {
         product: true,
-        operations: { orderBy: [{ sectionCode: 'asc' }, { seq: 'asc' }] },
+        operations: { select: { doneQtyOk: true, doneQtyDefect: true } },
+        lines: { where: { isActive: true }, select: { name: true } },
       },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: 300,
     }),
   ])
 
+  const homNay = ngayHomNay()
+
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-5">
+    <main className="mx-auto w-full max-w-7xl px-4 py-5">
       <Header
         tieuDe="Lệnh sản xuất"
         phu={`${u.fullName} · ${TEN_VAI_TRO[u.role]}`}
         nguoiDung={u}
       />
 
-      <form action={taoLenh} className="the mb-6 grid gap-3 sm:grid-cols-2">
+      <details className="the mb-5">
+        <summary className="cursor-pointer font-semibold">+ Tạo lệnh sản xuất mới</summary>
+      <form action={taoLenh} className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium text-slate-600">Số lệnh</span>
           <input
@@ -80,12 +83,12 @@ export default async function TrangLenhSanXuat() {
           <input name="dueDate" type="date" className="rounded-lg border-2 border-slate-300 px-3 py-2" />
         </label>
 
-        <label className="flex flex-col gap-1 sm:col-span-2">
+        <label className="flex flex-col gap-1 sm:col-span-2 lg:col-span-4">
           <span className="text-sm font-medium text-slate-600">Ghi chú</span>
           <input name="note" className="rounded-lg border-2 border-slate-300 px-3 py-2" />
         </label>
 
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-2 lg:col-span-4">
           <button className="rounded-lg bg-brand-600 px-4 py-2 font-medium text-white">
             Tạo và phát hành lệnh
           </button>
@@ -95,54 +98,31 @@ export default async function TrangLenhSanXuat() {
           </p>
         </div>
       </form>
+      </details>
 
-      <h2 className="mb-2 font-semibold">Danh sách lệnh</h2>
-      <div className="flex flex-col gap-2">
-        {lenhs.map((l) => {
-          const cuoi = l.operations.at(-1)
-          const xong = cuoi?.doneQtyOk ?? 0
-          const hong = l.operations.reduce((a, o) => a + o.doneQtyDefect, 0)
-          const pct = l.quantity > 0 ? Math.round((xong / l.quantity) * 100) : 0
-          return (
-            <div key={l.id} className="the">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <div>
-                  <p className="font-medium">
-                    {l.code} · {l.product.name}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {TEN_TRANG_THAI[l.status]} · {l.operations.length} nguyên công
-                    {hong > 0 && ` · ${hong} hỏng`}
-                    {l.dueDate && ` · hạn ${l.dueDate.toLocaleDateString('vi-VN')}`}
-                  </p>
-                </div>
-                <p className="text-sm tabular-nums text-slate-600">
-                  {xong}/{l.quantity} ({pct}%)
-                </p>
-              </div>
-
-              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
-                <div className="h-full bg-brand-600" style={{ width: `${Math.min(100, pct)}%` }} />
-              </div>
-
-              {['RELEASED', 'IN_PROGRESS'].includes(l.status) && (
-                <form action={doiTrangThai} className="mt-3 flex gap-2">
-                  <input type="hidden" name="id" value={l.id} />
-                  <select name="status" className="rounded-lg border border-slate-300 px-2 py-1 text-sm">
-                    <option value="IN_PROGRESS">Đang chạy</option>
-                    <option value="COMPLETED">Đã xong</option>
-                    <option value="CLOSED">Đóng lệnh</option>
-                    <option value="CANCELLED">Huỷ lệnh</option>
-                  </select>
-                  <button className="rounded-lg border border-slate-300 px-3 py-1 text-sm text-slate-600">
-                    Cập nhật
-                  </button>
-                </form>
-              )}
-            </div>
-          )
+      <LuoiLenh
+        lenhs={lenhs.map((l) => {
+          // Đã xong = số lượng đã qua hết mọi nguyên công — cùng cách tính với trang xếp nhân sự
+          const xong = l.operations.length > 0 ? Math.min(...l.operations.map((o) => o.doneQtyOk)) : 0
+          const han = l.dueDate ? ymdVN(l.dueDate) : null
+          return {
+            id: l.id,
+            ma: l.code,
+            sanPham: l.product.name,
+            maSP: l.product.code,
+            soLuong: l.quantity,
+            donVi: l.product.unit,
+            xong,
+            hong: l.operations.reduce((a, o) => a + o.doneQtyDefect, 0),
+            soNC: l.operations.length,
+            han,
+            conNgay: han ? cachNgay(homNay, han) : null,
+            trangThai: l.status,
+            chuyen: l.lines.map((c) => c.name),
+            taoLuc: ymdVN(l.createdAt),
+          }
         })}
-      </div>
+      />
     </main>
   )
 }
